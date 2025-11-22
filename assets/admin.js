@@ -133,7 +133,7 @@ if(typeof jQuery !== 'undefined' ){
 									jQuery("<button class='button button-primary'></button>").html(item.Caption).click(function(e){
 										e.preventDefault();
 										window.hpay_init().then(r=> {
-											item.Run(order);
+											item.Run();
 										});
 									}).appendTo(order_toolbox);
 									
@@ -144,7 +144,7 @@ if(typeof jQuery !== 'undefined' ){
 										jQuery("<button class='button button-primary'></button>").html(subitem.Caption).click(function(e){
 											e.preventDefault();
 											window.hpay_init().then(r=> {
-												subitem.Run(order);
+												subitem.Run();
 											});
 										}).appendTo(p);
 									});
@@ -184,7 +184,7 @@ if(typeof jQuery !== 'undefined' ){
 									jQuery("<button class='button button-primary'></button>").html(item.Caption).click(function(e){
 										e.preventDefault();
 										window.hpay_init().then(r=> {
-											item.Run(order);
+											item.Run();
 										});
 									}).appendTo(order_toolbox);
 									
@@ -195,7 +195,7 @@ if(typeof jQuery !== 'undefined' ){
 										jQuery("<button class='button button-primary'></button>").html(subitem.Caption).click(function(e){
 											e.preventDefault();
 											window.hpay_init().then(r=> {
-												subitem.Run(order);
+												subitem.Run();
 											});
 										}).appendTo(p);
 									});

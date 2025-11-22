@@ -113,6 +113,8 @@ trait HPay_Core_Checkout{
 				}
 			}
 		}
+
+		$show_integr = $show_fiscal;
 		
 		if($show_payment && $data){
 			
@@ -162,6 +164,16 @@ trait HPay_Core_Checkout{
 		global $hpay_fiscal_shipping_outputed;
 		if(!isset($hpay_fiscal_shipping_outputed))
 			$hpay_fiscal_shipping_outputed = array();
+
+		if($show_payment && $order && !isset($hpay_fiscal_shipping_outputed["{$order_id}_payment"])){
+			$hpay_fiscal_shipping_outputed["{$order_id}_payment"] = true;
+			$payment_html = $order->get_meta('_payment_html');
+			if(!$payment_html){
+				$payment_html = "";
+			}
+			if($payment_html)
+				echo "<div class='hpay-payment-info'>{$payment_html}</div>";
+		}
 		
 		if($show_fiscal && $order && !isset($hpay_fiscal_shipping_outputed["{$order_id}_fiscal"])){
 			$hpay_fiscal_shipping_outputed["{$order_id}_fiscal"] = true;
@@ -197,12 +209,23 @@ trait HPay_Core_Checkout{
 				echo "<div class='hpay-fiscal-info'>{$fiscal_html}</div>";
 		
 		}
-		
+
+		if($show_integr && $order && !isset($hpay_fiscal_shipping_outputed["{$order_id}_integr"])){
+			$hpay_fiscal_shipping_outputed["{$order_id}_integr"] = true;
+			$integr_html = $order->get_meta('_integr_html');
+			if(!$integr_html){
+				$integr_html = "";
+			}
+			if($integr_html)
+				echo "<div class='hpay-integr-info'>{$integr_html}</div>";
+		}
+
 		if($show_shipping && $order && !isset($hpay_fiscal_shipping_outputed["{$order_id}_shipping"])){
 			$hpay_fiscal_shipping_outputed["{$order_id}_shipping"] = true;
 			
 			$shipping_user_info = $order->get_meta('_shipping_user_info');
 			$shipping_html      = $order->get_meta('_shipping_html');
+			
 			if(!$shipping_html){
 				$shipping_html = "";
 			}

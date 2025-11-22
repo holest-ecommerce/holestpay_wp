@@ -1602,28 +1602,7 @@ class HPay_Admin{
 							<p label="<?php echo esc_attr__("Footer branding template","holestpay"); ?>" class='hpay_footer_template'> 
 								<select name="hpay_footer_template">
 									<option value="">--<?php echo esc_attr__("Not used","holestpay"); ?>--</option>
-									<?php 
-										$footer_templates  = array();
-										if(file_exists(__DIR__ . "/../assets/footer_branding")){
-											foreach(glob(__DIR__ . "/../assets/footer_branding/*",GLOB_ONLYDIR) as $footer_template){
-												if(is_dir($footer_template)){
-													$footer_templates[basename($footer_template)] = basename($footer_template); 
-												}	
-											}
-										}
-										
-										if(file_exists(WP_CONTENT_DIR . "/uploads/hpay-assets/footer_branding")){
-											foreach(glob(WP_CONTENT_DIR . "/uploads/hpay-assets/footer_branding/*",GLOB_ONLYDIR) as $footer_template){
-												if(is_dir($footer_template)){
-													$footer_templates[basename($footer_template)] = basename($footer_template); 
-												}	
-											}
-										}
-										
-										foreach($footer_templates as $ftmpl){
-											echo "<option value='" . esc_attr($ftmpl) . "'>" . esc_attr($ftmpl) . "</option>";	
-										}
-									?>
+									<option value="pos">--<?php echo esc_attr__("From HPay site/POS settings...","holestpay"); ?>--</option>
 								</select>
 								<span class='hpay_note'>(<?php echo esc_attr__("to alter or make a new template, see ","holestpay") . "...(wp_content)/uploads/hpay-assets/footer_branding/(template)..."; ?>)</span>
 							</p>

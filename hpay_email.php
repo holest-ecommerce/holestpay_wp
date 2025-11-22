@@ -166,6 +166,34 @@ trait HPay_Core_Email{
 			
 			if(HPAY_DEBUG_TRACE)
 				hpay_write_log("trace", array($order_id, "email_attachments_fiscal_user_info",$fiscal_user_info, $shipping_user_info));
+
+			if ( ! function_exists( 'download_url' ) ) {
+				require_once (ABSPATH . 'wp-admin/includes/file.php');
+			}
+
+			$hpay_responses = HPay_Core::instance()->getHPayPayResponses($order_id);
+			$last_response = end($hpay_responses);
+			
+			if(isset($last_response["attachments"])){
+				foreach($last_response["attachments"] as $attachment_url){
+					$tmppath = "";
+					if(function_exists('wp_tempnam'))
+						$tmppath = wp_tempnam( $attachment_url);
+					else 
+						$tmppath = rtrim(get_temp_dir(),"/") . "/attachment" . rand(10000,99999) . ".pdf";
+					
+					$file_path = dirname($tmppath) . DIRECTORY_SEPARATOR . $filename;
+					if(!file_exists($file_path)){
+						$tmppath = download_url( $attachment_url);
+						@rename($tmppath, $file_path);
+					}
+					if(file_exists($file_path)){
+						$attachments[] = $file_path;
+						if(HPAY_DEBUG_TRACE)
+							hpay_write_log("trace", array($order_id, "email_attachment_added",basename($file_path)));
+					}
+				}
+			}
 			
 			if($fiscal_user_info){
 				if(!array_is_list($fiscal_user_info)){

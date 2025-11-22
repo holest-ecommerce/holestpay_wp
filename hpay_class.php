@@ -1883,6 +1883,8 @@ class HPay_Core {
 		
 		$existing_fhtml = $order->get_meta("_fiscal_html");
 		$existing_shtml = $order->get_meta("_shipping_html");
+		$existing_ihtml = $order->get_meta("_integr_html");
+		$existing_phtml = $order->get_meta("_payment_html");
 		
 		if(!$existing_fhtml){
 			$existing_fhtml = "";
@@ -1890,6 +1892,14 @@ class HPay_Core {
 		
 		if(!$existing_shtml){
 			$existing_shtml = "";
+		}
+		
+		if(!$existing_ihtml){
+			$existing_ihtml = "";
+		}
+		
+		if(!$existing_phtml){
+			$existing_phtml = "";
 		}
 		
 		if(isset($resp["fiscal_user_info"])){
@@ -1900,6 +1910,17 @@ class HPay_Core {
 			unset($resp["shipping_user_info"]);
 		}
 		
+		if(isset($resp["integr_html"])){
+			$save = true;
+			$order->update_meta_data("_integr_html", $this->mergeMethodsOutputs($resp["integr_html"],$existing_ihtml));
+			unset($resp["integr_html"]);
+		}
+		
+		if(isset($resp["payment_html"])){
+			$save = true;
+			$order->update_meta_data("_payment_html", $this->mergeMethodsOutputs($resp["payment_html"],$existing_phtml));
+			unset($resp["payment_html"]);
+		}
 		
 		if(isset($resp["fiscal_html"])){
 			//hpay_write_log("trace", array($order_id, "store_fiscal_user_info",$resp["fiscal_html"]));
@@ -2893,6 +2914,81 @@ class HPay_Core {
 	}
 	
 	public function footer_branding(){
+		$use_footer_template = $this->getSetting("footer_template","");
+		
+		if(!$use_footer_template) return;
+
+		$hpay_pos_parameters = $this->getPOSSetting("pos_parameters",null);
+
+		if(!$hpay_pos_parameters)
+			return;
+
+		if(isset($hpay_pos_parameters["Logotypes 3DS"]) || isset($hpay_pos_parameters["Logotypes Card Images"]) || isset($hpay_pos_parameters["Logotypes Banks"])){
+			if(trim($hpay_pos_parameters["Logotypes 3DS"]) || trim($hpay_pos_parameters["Logotypes Card Images"]) || trim($hpay_pos_parameters["Logotypes Banks"])){
+				?>
+				<div class="hpay_footer_branding" style='display:flex;justify-content:center;padding:4px 0;'>
+					<div class="hpay-footer-branding-cards" style='display:flex'>
+						<?php 
+						if(isset($hpay_pos_parameters["Logotypes Card Images"]) && trim($hpay_pos_parameters["Logotypes Card Images"])){
+							$img_urls = explode("\n",trim($hpay_pos_parameters["Logotypes Card Images"]));
+							foreach($img_urls as $img_url){
+								$img_url = trim($img_url);
+								if($img_url){
+									echo "<img style='height:30px;' src='{$img_url}' alt='{$img_url}' />";
+								}
+							}
+						}
+						?>
+					</div>
+					<div style='padding: 0 25px;'>&nbsp;</div>
+					<div class="hpay-footer-branding-bank" style='display:flex'>
+						<?php
+							if(isset($hpay_pos_parameters["Logotypes Banks"]) && trim($hpay_pos_parameters["Logotypes Banks"])){
+								$hpay_pos_parameters["Logotypes Banks"] = str_replace(";","\n",trim($hpay_pos_parameters["Logotypes Banks"]));
+
+								$img_url_pairs = explode("\n",trim($hpay_pos_parameters["Logotypes Banks"]));
+								foreach($img_url_pairs as $img_url_pair){
+									if(!trim($img_url_pair))
+										continue;
+
+									$img_url_pair = str_ireplace(array("https://","http://") , array("HTTPSTEMP","HTTPTEMP") , trim($img_url_pair));
+									$img_url_pair = explode(":",$img_url_pair);
+
+									$img_url = str_ireplace(array("HTTPSTEMP","HTTPTEMP"),array("https://","http://"),$img_url_pair[0]);
+									$img_link = str_ireplace(array("HTTPSTEMP","HTTPTEMP"),array("https://","http://"),$img_url_pair[1]);
+
+									echo "<a style='padding:0 5px;' href='{$img_link}' target='_blank' ><img style='height:32px;' src='{$img_url}' alt='{$img_url}' /></a>";
+								}
+							}
+						?>
+					</div>
+					<div style='padding: 0 10px;'>&nbsp;</div>
+					<div class="hpay-footer-branding-3ds" style='display:flex'>
+						<?php
+							if(isset($hpay_pos_parameters["Logotypes 3DS"]) && trim($hpay_pos_parameters["Logotypes 3DS"])){
+								$hpay_pos_parameters["Logotypes 3DS"] = str_replace(";","\n",trim($hpay_pos_parameters["Logotypes 3DS"]));
+								$img_url_pairs = explode("\n",trim($hpay_pos_parameters["Logotypes 3DS"]));
+								foreach($img_url_pairs as $img_url_pair){
+									if(!trim($img_url_pair))
+										continue;
+									$img_url_pair = str_ireplace(array("https://","http://") , array("HTTPSTEMP","HTTPTEMP") , trim($img_url_pair));
+									$img_url_pair = explode(":",$img_url_pair);
+									$img_url = str_ireplace(array("HTTPSTEMP","HTTPTEMP"),array("https://","http://"),$img_url_pair[0]);
+									$img_link = str_ireplace(array("HTTPSTEMP","HTTPTEMP"),array("https://","http://"),$img_url_pair[1]);
+									echo "<a href='{$img_link}' target='_blank' ><img style='height:32px;' src='{$img_url}' alt='{$img_url}' /></a>";
+								}
+								
+							}
+						?>
+					</div>
+				</div>
+				<?php
+			}
+		}
+
+		/*
+
+
 		$footer_template = $this->getSetting("footer_template","");
 		
 		if($footer_template){
@@ -3005,5 +3101,8 @@ class HPay_Core {
 				<?php
 			}
 		}
+	   */
+
+
 	}
 };
