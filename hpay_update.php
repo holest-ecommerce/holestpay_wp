@@ -153,92 +153,263 @@ trait HPay_Core_Update{
 	}
 
 	function update_plugin(){
-		
+		@header("Content-Type: application/json");
 		$last_call = intval(get_option("hpay_plugin_upgrade_ts", 0));
 		
-		if($last_call + 120 > time()){
-			$r = json_encode(array( "updated" => false, "error" => "PREVENTED!", "message" => "You can not call update if at least 2min have not passed from last one"));
+		// Check if force parameter is set
+		$force = isset($_GET['force']) && $_GET['force'] == '1';
+		$timeout = $force ? 120 : 3600; // 2 minutes if forced, 1 hour otherwise
+		
+		if($last_call + $timeout > time()){
+			$timeout_text = $force ? "2 minutes" : "1 hour";
+			$r = json_encode(array( "updated" => false, "error" => "PREVENTED!", "message" => "You can not call update if at least {$timeout_text} have not passed from last one"));
 			echo $r;
-			return $r;
 			die;
 		}
 		
 		update_option("hpay_plugin_upgrade_ts", time(), true);
 		
-		echo '/* ***';
 		@ob_start();
-		try{
-			delete_transient( $this->cache_key_update );
-			$remote = $this->checkForUpdate();
+		
+		delete_transient( $this->cache_key_update );
+		$remote = $this->checkForUpdate();
 
-			global $upd_message;
-			$upd_message = "";
+		global $upd_message;
+		$upd_message = "";
 
-			require_once( ABSPATH . 'wp-admin/includes/misc.php');
-			require_once( ABSPATH . 'wp-admin/includes/file.php');
-			require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php');
-			require_once( ABSPATH . 'wp-admin/includes/class-plugin-upgrader.php');
-			
-			$plugin_idenifier = HPAY_PLUGIN;
-			
-			$upgrade_t = get_site_transient( 'update_plugins' );
-			
-			if(!$upgrade_t){
-				$upgrade_t = (object)array(
-				    "last_checked" => time() - 86400, 
-					"response" => array(),
-					"checked" => array()
-				); 
-			}
-			
-			$upgrade_t->response[$plugin_idenifier] = do_action("plugins_api",$remote,'plugin_information',(object)array("slug" => $plugin_idenifier));
-			$upgrade_t->checked[$plugin_idenifier] = $remote->version;
-			set_site_transient('update_plugins',$upgrade_t);
-			$updated = false;
-			
-			try{
-				$wp_updater = new Plugin_Upgrader();
-				$updated = $wp_updater->upgrade($plugin_idenifier);
-			}catch(Throwable $uex){
-				echo "/* wp_updater.upgrade " . $uex->getMessage() . "*/";
-			}
-			
-			try{
-				if($updated){
-					activate_plugin($plugin_idenifier,null);
-					if ( is_multisite() ) {
-						activate_plugin($plugin_idenifier,null,true);
-					}
-				}
-			}catch(Throwable $uex){
-				echo "/* activate_plugin " . $uex->getMessage() . "*/";
-			}
-			
+		require_once( ABSPATH . 'wp-admin/includes/file.php');
+		
+		$plugin_idenifier = HPAY_PLUGIN;
+		$updated = false;
+		
+		// Manual update process - download, unpack, and replace files
+		if(!$remote || !isset($remote->download_url)){
+			hpay_write_log("error", "No update available or invalid download URL");
 			$just_dump = ob_get_clean();
-			echo '*** */';
-			echo json_encode(array( "updated" => $updated, "message" => $upd_message));
-		}catch(Throwable $ex){
-			echo "/* general error " . $ex->getMessage() . "*/";
-			
-			$just_dump = ob_get_clean();
-			echo '*** */';
-			echo json_encode(array( "updated" => false, "error" => $ex->getMessage(), "message" => $upd_message));
+			echo json_encode(array( "updated" => false, "error" => "No update available or invalid download URL"));
+			die;
 		}
 		
-		try{
-			$active_plugins = get_option("active_plugins", false);
-			if($active_plugins){
-				if(!in_array("holestpay/index.php",$active_plugins)){
-					if(file_exists(WP_PLUGIN_DIR . "/holestpay/index.php")){
-						$active_plugins[] = "holestpay/index.php";
-					}
-				}
-				update_option("active_plugins", $active_plugins, true);
+		$download_url = $remote->download_url;
+		$plugin_slug = explode('/', $plugin_idenifier)[0]; // e.g., 'holestpay'
+		$plugin_dir = WP_PLUGIN_DIR . '/' . $plugin_slug;
+		
+		// Create temporary directory
+		$temp_dir = get_temp_dir() . 'hpay_update_' . time();
+		if(!wp_mkdir_p($temp_dir)){
+			hpay_write_log("error", "Failed to create temporary directory: {$temp_dir}");
+			$just_dump = ob_get_clean();
+			echo json_encode(array( "updated" => false, "error" => "Failed to create temporary directory"));
+			die;
+		}
+		
+		// Download the update zip file
+		hpay_write_log("log", "Downloading update from {$download_url}");
+		$temp_file = $temp_dir . '/update.zip';
+		$downloaded = $this->download_update_file($download_url, $temp_file);
+		
+		if(!$downloaded){
+			hpay_write_log("error", "Failed to download update file from {$download_url}");
+			$this->delete_directory($temp_dir);
+			$just_dump = ob_get_clean();
+			echo json_encode(array( "updated" => false, "error" => "Failed to download update file"));
+			die;
+		}
+		
+		hpay_write_log("log", "Download complete, extracting files");
+		
+		// Extract the zip file
+		WP_Filesystem();
+		global $wp_filesystem;
+		
+		$unzip_result = unzip_file($temp_file, $temp_dir);
+		if(is_wp_error($unzip_result)){
+			hpay_write_log("error", "Failed to extract update: " . $unzip_result->get_error_message());
+			$this->delete_directory($temp_dir);
+			$just_dump = ob_get_clean();
+			echo json_encode(array( "updated" => false, "error" => "Failed to extract update: " . $unzip_result->get_error_message()));
+			die;
+		}
+		
+		hpay_write_log("log", "Extraction complete, preparing to replace files");
+		
+		// Find the extracted plugin directory
+		$extracted_dir = null;
+		$files = scandir($temp_dir);
+		foreach($files as $file){
+			if($file != '.' && $file != '..' && is_dir($temp_dir . '/' . $file)){
+				$extracted_dir = $temp_dir . '/' . $file;
+				break;
 			}
-		}catch(Throwable $uex){
-			echo "/* activate via option " . $uex->getMessage() . "*/";
+		}
+		
+		if(!$extracted_dir || !is_dir($extracted_dir)){
+			hpay_write_log("error", "Could not find extracted plugin directory in {$temp_dir}");
+			$this->delete_directory($temp_dir);
+			$just_dump = ob_get_clean();
+			echo json_encode(array( "updated" => false, "error" => "Could not find extracted plugin directory"));
+			die;
+		}
+		
+		// Backup current plugin (optional but recommended)
+		$backup_dir = $temp_dir . '/backup_' . $plugin_slug;
+		if(!$this->copy_directory($plugin_dir, $backup_dir)){
+			hpay_write_log("warning", "Failed to create backup of current plugin");
+		}
+		
+		hpay_write_log("log", "Copying new files (overwriting existing)");
+		// Copy new plugin files over existing ones
+		$failed_files = array();
+		$this->copy_directory($extracted_dir, $plugin_dir, $failed_files);
+		
+		$updated = true;
+		$response_message = "Plugin updated successfully via manual update process";
+		
+		if(!empty($failed_files)){
+			hpay_write_log("warning", "Update completed with " . count($failed_files) . " failed file(s)");
+			hpay_write_log("warning", "Failed files list: " . implode(", ", $failed_files));
+			$response_message = "Plugin updated with " . count($failed_files) . " file(s) that failed to copy";
+		}else{
+			hpay_write_log("log", "Files replaced successfully");
+		}
+		
+		// Clean up temporary files
+		hpay_write_log("log", "Cleaning up temporary files");
+		$this->delete_directory($temp_dir);
+		
+		$just_dump = ob_get_clean();
+		
+		$response = array( 
+			"updated" => $updated, 
+			"message" => $response_message
+		);
+		
+		if(!empty($failed_files)){
+			$response["failed_files"] = $failed_files;
+			$response["failed_count"] = count($failed_files);
+		}
+		
+		echo json_encode($response);
+		
+		$active_plugins = get_option("active_plugins", false);
+		if($active_plugins){
+			if(!in_array("holestpay/index.php",$active_plugins)){
+				if(file_exists(WP_PLUGIN_DIR . "/holestpay/index.php")){
+					$active_plugins[] = "holestpay/index.php";
+					update_option("active_plugins", $active_plugins, true);
+					hpay_write_log("log", "Plugin ensured in active_plugins list");
+				}
+			}
 		}
 		
 		die;
+	}
+	
+	private function download_update_file($url, $destination){
+		try{
+			$response = wp_remote_get($url, array(
+				'timeout' => 300,
+				'stream' => true,
+				'filename' => $destination
+			));
+			
+			if(is_wp_error($response)){
+				hpay_write_log("error", "Download error: " . $response->get_error_message());
+				return false;
+			}
+			
+			$response_code = wp_remote_retrieve_response_code($response);
+			if(200 !== $response_code){
+				hpay_write_log("error", "Download failed with HTTP code: {$response_code}");
+				return false;
+			}
+			
+			if(!file_exists($destination)){
+				hpay_write_log("error", "Downloaded file does not exist at: {$destination}");
+				return false;
+			}
+			
+			return true;
+		}catch(Throwable $ex){
+			hpay_write_log("error", "Download exception: " . $ex->getMessage());
+			return false;
+		}
+	}
+	
+	private function copy_directory($source, $destination, &$failed_files = null){
+		try{
+			if(!is_dir($source)){
+				hpay_write_log("error", "Copy failed: source directory does not exist: {$source}");
+				return false;
+			}
+			
+			if(!wp_mkdir_p($destination)){
+				hpay_write_log("error", "Copy failed: could not create destination directory: {$destination}");
+				return false;
+			}
+			
+			$dir = opendir($source);
+			if(!$dir){
+				hpay_write_log("error", "Copy failed: could not open source directory: {$source}");
+				return false;
+			}
+			
+			$success = true;
+			
+			while(($file = readdir($dir)) !== false){
+				if($file != '.' && $file != '..'){
+					$src_path = $source . '/' . $file;
+					$dest_path = $destination . '/' . $file;
+					
+					if(is_dir($src_path)){
+						// Recursively copy subdirectories
+						if(!$this->copy_directory($src_path, $dest_path, $failed_files)){
+							$success = false;
+							// Continue with other files/directories
+						}
+					}else{
+						// Copy individual file
+						if(!@copy($src_path, $dest_path)){
+							hpay_write_log("error", "Failed to copy file: {$src_path} to {$dest_path}");
+							if($failed_files !== null){
+								$failed_files[] = $src_path;
+							}
+							$success = false;
+							// Continue with other files
+						}
+					}
+				}
+			}
+			
+			closedir($dir);
+			return $success;
+		}catch(Throwable $ex){
+			hpay_write_log("error", "Copy directory exception: " . $ex->getMessage());
+			return false;
+		}
+	}
+	
+	private function delete_directory($dir){
+		try{
+			if(!is_dir($dir)){
+				return false;
+			}
+			
+			$files = array_diff(scandir($dir), array('.', '..'));
+			
+			foreach($files as $file){
+				$path = $dir . '/' . $file;
+				if(is_dir($path)){
+					$this->delete_directory($path);
+				}else{
+					@unlink($path);
+				}
+			}
+			
+			return @rmdir($dir);
+		}catch(Throwable $ex){
+			hpay_write_log("warning", "Delete directory exception: " . $ex->getMessage());
+			return false;
+		}
 	}
 };	
