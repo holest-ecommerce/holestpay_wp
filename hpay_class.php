@@ -1918,7 +1918,7 @@ class HPay_Core {
 		
 		if(isset($resp["payment_html"])){
 			$save = true;
-			$order->update_meta_data("_payment_html", $this->mergeMethodsOutputs($resp["payment_html"],$existing_phtml));
+			$order->update_meta_data("_payment_html", $resp["payment_html"]);
 			unset($resp["payment_html"]);
 		}
 		
