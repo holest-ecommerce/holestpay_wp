@@ -3,6 +3,8 @@
 	
 	
 	if(typeof HolestPayCheckout !== 'undefined' ){
+		let hpay_adding_payment_method = false;
+		let hpay_on_result_callaback = null;
 		
 		let __hscript_load = (SCRIPT_URL, callback , async = true, type = "text/javascript") => {
 						
@@ -184,17 +186,20 @@
 								sm_options.style.display = 'block';	
 							}
 						}
-					}else if(!el.checked){
+					}else{
 						let smid = String(el.getAttribute("value") || "").split(":")[0];
 						let sm_options = el.parentNode.querySelector('.hpay-sm-options');
+						
 						if(sm_options){
-							if(HolestPayCheckout.cart.shipping_method == smid){
+							if(!el.checked){
+								sm_options.style.display = 'none';
+							}else if(HolestPayCheckout.cart.shipping_method == smid){
 								sm_options.style.display = 'block';	
 							}else{
 								sm_options.style.display = 'none';
 							}	
 						}
-					} 
+					}
 				}
 			}
 			
@@ -212,20 +217,22 @@
 							try{
 								adapted_checkout_destroy = smethod.AdaptCheckout({
 									billing: {
-										postcode: "#billing_postcode,#billing-postcode",
-										phone: "#billing_phone,#billing-phone",
-										country: "#billing_country,#billing-country",
-										city: "#billing_city,#billing-city",
 										address: "#billing_address_1,#billing-address_1",
-										address_num: "#billing_address_2,#billing-address_2"	
+										address_num: "#billing_address_2,#billing-address_2",
+										postcode: "#billing_postcode,#billing-postcode",
+										city: "#billing_city,#billing-city",
+										municipality:"#billing_state",
+										phone: "#billing_phone,#billing-phone",
+										country: "#billing_country,#billing-country"
 									},
 									shipping:{
-										postcode: "#shipping_postcode,#shipping-postcode",
-										phone: "#shipping_phone,#shipping-phone",
-										country: "#shipping_country,#shipping-country",
-										city: "#shipping_city,#shipping-city",
 										address: "#shipping_address_1,#shipping-address_1",
-										address_num: "#shipping_address_2,#shipping-address_2"
+										address_num: "#shipping_address_2,#shipping-address_2",
+										postcode: "#shipping_postcode,#shipping-postcode",
+										city: "#shipping_city,#shipping-city",
+										municipality:"#shipping_state",
+										phone: "#shipping_phone,#shipping-phone",
+										country: "#shipping_country,#shipping-country"
 									}
 								}) || null;
 							}catch(ex){
@@ -336,12 +343,33 @@
 		});
 		
 		addEventListener("DOMContentLoaded", (event) => {
+			let _pm_uhpc = null;
 			setTimeout(()=>{
 				let hpmeth = document.querySelector("input[value^='hpaypayment-']:checked");
 				if(hpmeth){
 					let pm_id = parseInt(String(hpmeth.getAttribute("value")).replace(/[^\d]/g,'')) || null;
 					if(pm_id){
 						update_hpay_pay_dock(pm_id);
+					}
+				}else if(document.querySelector('div[data-block-name="woocommerce/checkout"],div.wp-block-woocommerce-checkout')){
+					const targetNode = document.querySelector('div[data-block-name="woocommerce/checkout"],div.wp-block-woocommerce-checkout');
+
+					if (targetNode) {
+						const observer = new MutationObserver((mutations) => {
+							mutations.forEach((mutation) => {
+								let hpmeth = document.querySelector("input[value^='hpaypayment-']:checked");
+								if(hpmeth){
+									let pm_id = parseInt(String(hpmeth.getAttribute("value")).replace(/[^\d]/g,'')) || null;
+									if(pm_id != _pm_uhpc){
+										_pm_uhpc = pm_id;
+										update_hpay_pay_dock(pm_id);
+									}
+								}
+							});
+						});
+						observer.observe(targetNode, { childList: true, subtree: true });
+					} else {
+						console.warn('Checkout container not found. Check if the block is loaded yet.');
 					}
 				}
 			},350);
@@ -539,6 +567,19 @@
 		};
 		
 		document.addEventListener("onHPayResult",function(e){
+			if(hpay_adding_payment_method)
+				return;
+			
+			if(hpay_on_result_callaback){
+				try{
+					let c = hpay_on_result_callaback;
+					hpay_on_result_callaback = null;
+					c(e.hpay_response);
+				}catch(ex){
+					console.error(ex);
+				}
+			}
+			
 			if(e.hpay_response.transaction_uid){
 				
 				if(typeof HPay !== 'undefined'){
@@ -549,7 +590,9 @@
 				
 				if(!e.hpay_response.vhash){
 					if(e.hpay_response.order_user_url && (/SUCCESS|PAID|PAYING|RESERVED|AWAITING|OBLIGATED/.test(e.hpay_response.status))){
-						window.location.href = e.hpay_response.order_user_url;
+						setTimeout(function(){
+							window.location.href = e.hpay_response.order_user_url;
+						},600);
 						return;
 					}
 					
@@ -568,12 +611,16 @@
 					}).then(rresp => rresp.json()).then(r => {
 						if(/SUCCESS|PAID|PAYING|RESERVED|AWAITING|OBLIGATED/.test(e.hpay_response.status)){
 							if(r.order_user_url){
-								window.location.href = r.order_user_url;
+								setTimeout(function(){
+									window.location.href = r.order_user_url;
+								},600);
 								return;
 							}
 							
 							if(e.hpay_response.order_user_url){
-								window.location.href = e.hpay_response.order_user_url;
+								setTimeout(function(){
+									window.location.href = e.hpay_response.order_user_url;
+								},600);
 								return;
 							}
 							
@@ -583,7 +630,9 @@
 					}).catch(err => {
 						if(/SUCCESS|PAID|PAYING|RESERVED|AWAITING|OBLIGATED/.test(e.hpay_response.status)){
 							if(e.hpay_response.order_user_url){
-								window.location.href = e.hpay_response.order_user_url;
+								setTimeout(function(){
+									window.location.href = e.hpay_response.order_user_url;
+								},600);
 								return;
 							}
 						}else
@@ -602,12 +651,16 @@
 							if(/SUCCESS|PAID|PAYING|RESERVED|AWAITING|OBLIGATED/.test(e.hpay_response.status)){
 								
 								if(r.order_user_url){
-									window.location.href = r.order_user_url;
+									setTimeout(function(){
+										window.location.href = r.order_user_url;
+									},600);
 									return;
 								}
 								
 								if(e.hpay_response.order_user_url){
-									window.location.href = e.hpay_response.order_user_url;
+									setTimeout(function(){
+										window.location.href = e.hpay_response.order_user_url;
+									},600);
 									return;
 								}
 							}else{
@@ -616,7 +669,9 @@
 						}).catch(err => {
 							if(/SUCCESS|PAID|PAYING|RESERVED|AWAITING|OBLIGATED/.test(e.hpay_response.status)){
 								if(e.hpay_response.order_user_url){
-									window.location.href = e.hpay_response.order_user_url;
+									setTimeout(function(){
+										window.location.href = e.hpay_response.order_user_url;	
+									},600);
 									return;
 								}
 							}else{
@@ -626,7 +681,9 @@
 					}else{
 						if(/SUCCESS|PAID|PAYING|RESERVED|AWAITING|OBLIGATED/.test(e.hpay_response.status)){
 							if(e.hpay_response.order_user_url){
-								window.location.href = e.hpay_response.order_user_url;
+								setTimeout(function(){
+									window.location.href = e.hpay_response.order_user_url;
+								},600);
 								return;
 							}
 						}else{
@@ -1190,4 +1247,190 @@ addEventListener("DOMContentLoaded", (event) => {
 			console.error(ex);
 		}
 	}
+	
+	async function hpay_pay_order(order_id, pm_id, token){
+		return fetch(HolestPayCheckout.ajax_url + "&operation=pay_order",{
+			method:"POST",
+			headers:{
+					"Content-Type":"application/json"
+			},
+			body: JSON.stringify({
+				vault_token_uid: token || "",
+				order_id: order_id || "",
+				hpayment_method_id: pm_id || ""
+			})
+		}).then(rawr => rawr.json()).then(resp => {
+			if(resp.result){
+				return resp.result;
+			}else if(resp.pay_request){
+				return new Promise((resolve) => {
+					if(token == 'add-token'){
+						hpay_adding_payment_method = true;
+						const onClose = function(e){
+							if(e && e.hpay_response && e.hpay_response.user_reason === true){
+								window.location.reload();
+							}
+						};
+						const onTokenResult = function(e){
+							hpay_adding_payment_method = false;
+							document.removeEventListener("onHPayResult",onTokenResult);
+							document.removeEventListener("onHPayPanelClose",onClose);
+							resolve(e.hpay_response);
+						};
+						
+						
+						document.addEventListener("onHPayPanelClose", onClose)
+						document.addEventListener("onHPayResult",onTokenResult);
+					}else{
+						hpay_on_result_callaback = resolve;
+					}
+					presentHPayPayForm(resp.pay_request);
+				});
+			}else{
+				if(resp.message){
+					hpay_PresentPopup("payreq-error xs-popup", "", resp.message);
+				}else if(resp.error){
+					hpay_PresentPopup("payreq-error xs-popup", "--error--", resp.error);
+				}
+				return resp;	
+			} 
+		}).catch(err => {
+			
+			let err_txt = (err && err.message) ? err.message : "error";
+			hpay_PresentPopup("payreq-error xs-popup", "--error--", err_txt);
+			return {
+				error: err_txt,
+				error_code:500,
+				error_ref: 11454565
+			}
+		});	
+	} 
+
+	async function hpay_save_pay_token(pm_id){
+		return hpay_pay_order("", pm_id, 'add-token');
+	}
+	
+	function change_subscription_payment_method_form(){
+		const cpm = document.querySelector('form input[name="woocommerce_change_payment"]');
+		if(cpm && cpm.form){
+			const form = cpm.form;
+			
+			let let_submit = false;
+		
+			form.addEventListener('submit', function(e) {
+				if(let_submit)
+					return;
+				
+				let pm_sel_el = form.querySelector("*[name='payment_method']:checked");
+				if(pm_sel_el && pm_sel_el.value && /^hpaypayment-/.test(pm_sel_el.value)){
+					let pm_id = parseInt(pm_sel_el.value.replace(/^hpaypayment-/,''));
+					if(pm_id){
+						e.preventDefault();
+						let_submit = true;
+						
+						if(typeof HPay !== 'undefined' && HPay && HPay.POS && HPay.POS.payment){
+							let pm = HPay.POS.payment.find(p=>p.HPaySiteMethodId == pm_id);
+							
+							if(pm && !pm.hasOwnProperty('SubscriptionsType') && pm.SubsciptionsType){
+								pm.SubscriptionsType = pm.SubsciptionsType;
+							}
+							
+							if(pm && pm.SubscriptionsType && /cof|mit/.test(pm.SubscriptionsType)){
+								hpay_save_pay_token(pm_id).then(r => {
+									if(r.vault_token_uid){
+										const hiddenInput = document.createElement('input');
+										hiddenInput.type = 'hidden';
+										hiddenInput.name = 'save_vault_token_response';
+										hiddenInput.value = JSON.stringify({
+											vault_card_brand: r.vault_card_brand,
+											vault_card_umask: r.vault_card_umask,
+											vault_exp: r.vault_exp,
+											vault_token_uid: r.vault_token_uid,
+											vault_scope: r.vault_scope ,
+											vault_onlyforuser: r.vault_onlyforuser
+										});
+										form.appendChild(hiddenInput);
+										form.submit(); 
+									}else{
+										let_submit = false;
+										hpay_PresentPopup("payreq-error xs-popup", HolestPayCheckout.labels.error , HolestPayCheckout.labels.error_contact_us);	
+									}
+								});
+							}
+						}
+					}
+				}
+			});
+		}
+	}
+
+	function add_payment_token_from() {
+		const form = document.querySelector('form#add_payment_method');
+		if (!form) return;
+		
+		let let_submit = false;
+		
+		form.addEventListener('submit', function(e) {
+			if(let_submit){
+				return;
+			}
+			
+			if(!form.querySelector("input[name='save_vault_token_response']")){
+				let pm_sel_el = form.querySelector("*[name='payment_method']");
+				if(pm_sel_el && pm_sel_el.value && /^hpaypayment-/.test(pm_sel_el.value)){
+					let pm_id = parseInt(pm_sel_el.value.replace(/^hpaypayment-/,''));
+					if(pm_id){
+						e.preventDefault();
+						let_submit = true;
+						
+						hpay_save_pay_token(pm_id).then(r => {
+							if(r.vault_token_uid){
+								
+								const hiddenInput = document.createElement('input');
+								hiddenInput.type = 'hidden';
+								hiddenInput.name = 'save_vault_token_response';
+								hiddenInput.value = JSON.stringify({
+									vault_card_brand: r.vault_card_brand,
+									vault_card_umask: r.vault_card_umask,
+									vault_exp: r.vault_exp,
+									vault_token_uid: r.vault_token_uid,
+									vault_scope: r.vault_scope ,
+									vault_onlyforuser: r.vault_onlyforuser
+								});
+								form.appendChild(hiddenInput);
+								
+								
+								form.submit(); 
+							}else{
+								setTimeout(function(){
+									form.submit(); 
+								},3500);
+							}
+						});
+					}
+				}
+			}
+			
+		});
+		
+		form.querySelectorAll("input[type='radio'][name*='_vault_token_id'][value='']").forEach(el=> el.checked = true); 
+		
+	};
+	
+	add_payment_token_from();
+	change_subscription_payment_method_form();
+	
+	setTimeout(function(){
+		document.querySelectorAll("a[href*='/hpay_direct_pay/']").forEach(el => {
+			el.addEventListener("click", (e) => {
+				e.preventDefault();
+				let order_id = parseInt(el.getAttribute("href").split('/hpay_direct_pay/')[1]);
+				if(order_id){
+					hpay_pay_order(order_id);
+				}
+			},true);
+		});	
+	},150);
+	
 });
+

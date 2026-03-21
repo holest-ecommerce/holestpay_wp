@@ -82,11 +82,18 @@ class WC_Gateway_HPayPayment_Block extends AbstractPaymentMethodType {
 }
 
 //PAYMENT METHOD BLOCK PLACEHOLDER CLASSES///////////////////////////////////////
-class WC_Gateway_HPayPMPHOLDER1_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER2_BLOCK extends WC_Gateway_HPayPayment_Block{};
-class WC_Gateway_HPayPMPHOLDER3_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER4_BLOCK extends WC_Gateway_HPayPayment_Block{};
-class WC_Gateway_HPayPMPHOLDER5_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER6_BLOCK extends WC_Gateway_HPayPayment_Block{};
-class WC_Gateway_HPayPMPHOLDER7_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER8_BLOCK extends WC_Gateway_HPayPayment_Block{};
-class WC_Gateway_HPayPMPHOLDER9_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER10_BLOCK extends WC_Gateway_HPayPayment_Block{};
-class WC_Gateway_HPayPMPHOLDER11_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER12_BLOCK extends WC_Gateway_HPayPayment_Block{};
-class WC_Gateway_HPayPMPHOLDER13_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER14_BLOCK extends WC_Gateway_HPayPayment_Block{};
+try{
+	class WC_Gateway_HPayPMPHOLDER1_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER2_BLOCK extends WC_Gateway_HPayPayment_Block{};
+	class WC_Gateway_HPayPMPHOLDER3_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER4_BLOCK extends WC_Gateway_HPayPayment_Block{};
+	class WC_Gateway_HPayPMPHOLDER5_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER6_BLOCK extends WC_Gateway_HPayPayment_Block{};
+	class WC_Gateway_HPayPMPHOLDER7_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER8_BLOCK extends WC_Gateway_HPayPayment_Block{};
+	class WC_Gateway_HPayPMPHOLDER9_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER10_BLOCK extends WC_Gateway_HPayPayment_Block{};
+	class WC_Gateway_HPayPMPHOLDER11_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER12_BLOCK extends WC_Gateway_HPayPayment_Block{};
+	class WC_Gateway_HPayPMPHOLDER13_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER14_BLOCK extends WC_Gateway_HPayPayment_Block{};
+	class WC_Gateway_HPayPMPHOLDER15_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER16_BLOCK extends WC_Gateway_HPayPayment_Block{};
+	class WC_Gateway_HPayPMPHOLDER17_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER18_BLOCK extends WC_Gateway_HPayPayment_Block{};
+	class WC_Gateway_HPayPMPHOLDER19_BLOCK extends WC_Gateway_HPayPayment_Block{};class WC_Gateway_HPayPMPHOLDER20_BLOCK extends WC_Gateway_HPayPayment_Block{};
+}catch(Throwable $ex){
+	hpay_write_log("error",$ex);
+}
 ///////////////////////////////////////////////////////////////////////////

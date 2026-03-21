@@ -235,6 +235,13 @@ trait HPay_Core_Static {
 	}	
 	
 	public static function getMerchantExchnageRate($from, $to){
+		$from   = strtoupper(trim($from)); 
+		$to     = strtoupper(trim($to)); 
+		
+		if($from == $to){
+			return 1.00;	
+		}
+		
 		$rate = HPay_Core::getExchnageRate($from, $to);
 		if($rate === null){
 			return $rate;

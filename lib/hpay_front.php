@@ -134,7 +134,7 @@ class HPay_Front{
 					wp_die("Method Not found","404 Method Not found", array("response" => 404));
 				}
 			}else{
-				wp_die("Not accepatable",__("406 Not accepatable",'holestpay'), array("response" => 406));
+				wp_die("Not accepatable :user_operations[1]",__("406 Not accepatable :user_operations[1]",'holestpay'), array("response" => 406));
 				return;
 			}
 		}else if($op == "checkout_sessiom_data"){
@@ -226,17 +226,115 @@ class HPay_Front{
 								return;
 							}
 						}
-					}
+					}else if($op == "pay_order"){
+						if(isset($request_data["vault_token_uid"]) && $request_data["vault_token_uid"] == "add-token"){
+							$hpayment_method_id = null;
+							$hpay_paymethod = null;
+							
+							if(isset($request_data["hpayment_method_id"])){
+								$hpay_paymethod = HPay_Core::payment_method_instance($request_data["hpayment_method_id"]);
+								if($hpay_paymethod){
+									$hpayment_method_id = $hpay_paymethod->hpay_id;
+								}
+							}
+							
+							if(!$hpayment_method_id){
+								wp_send_json(array("error" => "Not accepatable :user_operations[2]","message" => "No such hpay method!", "error_code" => 406),406);
+								return;
+							}
+							
+							$ouuid = date('Ymd').uniqid("card-save"); 
+							$current_user = wp_get_current_user();
+							
+							if($current_user->ID === 0){
+								wp_send_json(array("error" => "Not accepatable :user_operations[3]","message" => "No user session - please log-in!", "error_code" => 406),406);
+								return;
+							}
+							
+							$pay_request = array(
+								'hpaylang' => HPay_Core::hpaylang(),
+								'payment_method' => $hpayment_method_id,
+								'cof'            => 'required',
+								'order_amount'   => 0.00,
+								'order_billing'  => array(
+									'email'      => $current_user->user_email,
+									'first_name' => $current_user->user_firstname,
+									'last_name'  => $current_user->user_lastname
+								),
+								'order_currency' => $hpay_paymethod->getHProp("PaymentCurrency"),
+								'order_name'     => "#" . $ouuid,
+								'order_uid'      => $ouuid
+							);
+							
+							$pay_request["verificationhash"] = esc_attr(HPay_Core::instance()->payRequestSignatureHash("","",$pay_request["order_uid"],$pay_request["order_amount"], $pay_request["order_currency"],"", ""));
+							
+							wp_send_json(array("pay_request" => $pay_request),200);
+							return;
+						}else{
+							if(isset($request_data["order_id"]) && $request_data["order_id"] && intval($request_data["order_id"])){
+								$hpayment_method_id = null;
+								$hpay_paymethod = null;
+								
+								if(isset($request_data["hpayment_method_id"])){
+									$hpay_paymethod = HPay_Core::payment_method_instance($request_data["hpayment_method_id"]);
+									if($hpay_paymethod){
+										$hpayment_method_id = $hpay_paymethod->hpay_id;
+									}
+								}
+								
+								$vault_token_uid = '';
+								$pms = array();
+								if(isset($request_data["vault_token_uid"]) && $request_data["vault_token_uid"]){
+									$vault_token_uid = $request_data["vault_token_uid"];
+								}else{
+									$pms = HPay_Core::payment_methods_enabled();
+									if(count($pms) == 1){
+										$hpay_paymethod = $pms[0];
+										$hpayment_method_id = $pms[0]->hpay_id;
+									}
+									
+									$current_user = wp_get_current_user();
+									if($hpay_paymethod && $current_user->ID && !$vault_token_uid){
+										$tokens = WC_Payment_Token_HPay::get_hpay_tokens($current_user->ID, $hpayment_method_id);
+										foreach($tokens as $token_id => $token){
+											if($token->is_default() && $token->hpaymethodtype() == $hpay_paymethod->hpay_method_type()){
+												$vault_token_uid = $token->vault_token_uid();
+												break;
+											}
+										}
+									}
+								}
+								
+								$order_id = intval($request_data["order_id"]);
+								
+								$cof = 'optional';
+								if(HPay_Core::instance()->wc_isSubsription($order_id)){
+									$cof = 'required';
+								}
+								
+								$pay_request = HPay_Core::instance()->generateHPayRequest($order_id,$hpayment_method_id, $cof, $vault_token_uid);
+								
+								if(!@$pay_request["payment_method"]){
+									$pay_request["payment_method"] = 'select';
+								}
+								
+								wp_send_json(array("pay_request" => $pay_request),200);
+								return;
+							}else{
+								wp_send_json(array("error" => "Not accepatable","message" => "ERROR: Provide valid order ID!", "error_code" => 406),406);
+								return;
+							}
+						}
+					} 
 				}
 			}
-			wp_send_json(array("error" => "Not accepatable", "error_code" => 406),406);
+			wp_send_json(array("error" => "Not accepatable", "error_code" => 406, "user_operations_data" => $json),406);
 		}
 	}
 	
 	public function enqueue_scripts($for_admin = false){
 		if (!wp_script_is( 'hpay_checkout_js', 'enqueued' ) ) {
 			$pdata = $this->core->getPluginData();
-			
 			
 			wp_enqueue_style( 'hpay_checkout_css', $this->core->plugin_url . '/assets/hpay-checkout.css', array(), $pdata["Version"] );
 			wp_enqueue_script( 'hpay_checkout_js', $this->core->plugin_url . '/assets/hpay-checkout.js', $for_admin ? array("jquery","hpay_wpadmin_js") : array("jquery"), $pdata["Version"] );
@@ -289,10 +387,8 @@ class HPay_Front{
 				"hpay_autoinit"         => is_checkout() ? 1 : 0
 			);
 			
-			wp_localize_script( 'hpay_checkout_js', 'HolestPayCheckout', $data);	
+			wp_localize_script( 'hpay_checkout_js', 'HolestPayCheckout', $data);
 		}
 	}
-	
-	
 };
 

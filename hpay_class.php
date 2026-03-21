@@ -54,6 +54,8 @@ class HPay_Core {
 		add_action( 'wp_ajax_hpay-webhook', array( $this, 'webhookHandler' ));
 		
 		add_filter( 'woocommerce_available_payment_gateways', array( $this,'wc_filter_checkout_payment_gateways'), 50 ,1);
+		add_filter( 'wps_sfw_supported_payment_gateway_for_woocommerce', array( $this,'hpay_wps_sfw_supported_payment_gateway'), 55, 2 );
+		
 		add_filter( 'woocommerce_package_rates', array( $this,'wc_filter_shipping_methods'), 50 ,1);
 		
 		add_action( 'wp_loaded', array($this,'check_schedules'));
@@ -68,6 +70,7 @@ class HPay_Core {
 		add_action( 'wp_ajax_hpay-call-run-15min', array( $this, 'call_run_15min' ));
 		
 		add_action( 'wcs_renewal_order_created', array( $this,'wcs_renewal_order_created'), 99, 2); 
+		add_action( 'wps_sfw_renewal_order_creation', array( $this, 'wps_sfw_renewal_order_created_callback'), 10, 2);
 		 
 		add_action( 'woocommerce_thankyou', array( $this, 'thankyou_page' ),30 );
 		add_action( 'wp_footer',  array( $this, 'footer_branding'), 999);
@@ -126,7 +129,7 @@ class HPay_Core {
 			echo "DONE 15min";
 		}catch(Throwable $ex){
 			hpay_write_log('schedule_exception',$ex);
-		}	
+		}
 		die;
 	}
 	
@@ -793,24 +796,46 @@ class HPay_Core {
 						if(strpos($charge_res["status"],"SUCCESS") !== false || strpos($charge_res["status"],"PAID") !== false){
 							if($renewal == "wsc"){
 								 WC_Subscriptions_Manager::process_subscription_payments_on_order(hpay_get_order($charge->order_id));
-							}else if($renewal == "wsc"){
+							}else if($renewal == "yith"){
 								//	
+							}else if($renewal == "wps_sfw"){
+								$order = hpay_get_order($order_id);
+								$subscription_id = $order->get_meta('wps_sfw_subscription');
+								if($subscription_id){
+									do_action('wps_sfw_after_renewal_payment', $order, $subscription_id, $order->get_payment_method());	
+								}
 							}else{
 								//	
 							}
 						}else if(strpos($charge_res["status"],"RESERVED") !== false || strpos($charge_res["status"],"AWAITING") !== false){
 							if($renewal == "wsc"){
 								
-							}else if($renewal == "wsc"){
+							}else if($renewal == "yith"){
+								//	
+							}else if($renewal == "wps_sfw"){
 								//	
 							}else{
 								//	
 							}
-						}else if(strpos($charge_res["status"],"FAILED") !== false || strpos($charge_res["status"],"CANCELED") !== false){
+						}else if(strpos($charge_res["status"],"FAILED") !== false || strpos($charge_res["status"],"ERROR") !== false || strpos($charge_res["status"],"CANCELED") !== false){
 							if($renewal == "wsc"){
 								WC_Subscriptions_Manager::process_subscription_payment_failure_on_order(hpay_get_order($charge->order_id));
-							}else if($renewal == "wsc"){
+							}else if($renewal == "yith"){
 								//	
+							}else if($renewal == "wps_sfw"){
+								$order = hpay_get_order($order_id);
+								$subscription_id = $order->get_meta('wps_sfw_subscription');
+								if($subscription_id){
+									if(intval($order->get_meta("_hpay_charge_tries")) >= 3){
+										if(function_exists('wps_sfw_update_meta_data')){
+											wps_sfw_update_meta_data( $subscription_id, 'wps_subscription_status', 'on-hold' );
+										}else{
+											$subscription = wc_get_order( $subscription_id );
+											$subscription->update_meta_data( 'wps_subscription_status', 'on-hold' );
+											$subscription->save();
+										}
+									}
+								}	
 							}else{
 								//	
 							}
@@ -852,7 +877,8 @@ class HPay_Core {
 					}
 				}
 				if(!$store){
-					$shipping_method = @array_shift($order->get_shipping_methods());
+					$sms = $order->get_shipping_methods();
+					$shipping_method = @array_shift($sms);
 					if($shipping_method){
 						if(isset($shipping_method['method_id'])){
 							$shipping_method_id = $shipping_method['method_id'];
@@ -1444,7 +1470,13 @@ class HPay_Core {
 		$paymentm = $this->getPOSSetting("payment",null);
 		if($paymentm){
 			$result = array_filter($paymentm,function($pm){ 
-												return stripos($pm["SubsciptionsType"],"tokenization") !== false || stripos($pm["SubsciptionsType"],"recurring");
+												$stype = "";
+												if(isset($pm["SubscriptionsType"])){
+													$stype = $pm["SubscriptionsType"];
+												}else if(isset($pm["SubsciptionsType"])){
+													$stype = $pm["SubsciptionsType"];
+												}
+												return stripos($stype,"cof") !== false || stripos($stype,"mit");
 											});
 			if(empty($result))
 				return false;
@@ -1631,7 +1663,7 @@ class HPay_Core {
 									$tlng = $result["hpaylang"];
 								}
 								if($hmethod){
-									WC_Payment_Token_HPay::create_hpay_token($customer_user_id, $merchant_site_uid, $hmethod->hpay_method_type(), $result["vault_card_brand"], $result["vault_card_umask"], $result["vault_token_uid"], $result["vault_scope"], $result["vault_onlyforuser"], $tlng);
+									WC_Payment_Token_HPay::create_hpay_token($customer_user_id, $merchant_site_uid, $hmethod->hpay_method_type(), @$result["vault_card_brand"], @$result["vault_card_umask"], @$result["vault_exp"], $result["vault_token_uid"], @$result["vault_scope"], @$result["vault_onlyforuser"], $tlng);
 								}
 							}
 						}
@@ -1916,9 +1948,9 @@ class HPay_Core {
 			unset($resp["integr_html"]);
 		}
 		
-		if(isset($resp["payment_html"])){
+		if(isset($resp["payment_html"]) && $resp["payment_html"]){
 			$save = true;
-			$order->update_meta_data("_payment_html", $this->mergeMethodsOutputs($resp["payment_html"],$existing_phtml));
+			$order->update_meta_data("_payment_html", $resp["payment_html"]);
 			unset($resp["payment_html"]);
 		}
 		
@@ -2890,7 +2922,7 @@ class HPay_Core {
 					}
 				}
 			}
-			wp_send_json(array("error" => "BAD DATA" , "error_code" => 406), 406);
+			wp_send_json(array("error" => "BAD DATA" , "error_code" => 406, 'bad_data_received' => $data), 406);
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);
 			wp_send_json(array("error" => "ERROR" , "error_code" => 500), 500);

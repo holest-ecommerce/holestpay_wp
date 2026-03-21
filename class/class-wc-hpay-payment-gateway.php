@@ -84,12 +84,18 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 		}
 				
 		if(HPay_Core::instance()->getPOSSetting("SubscriptionsUnlocked", null)){
-			
-			if(!isset($this->_method_data["SubsciptionsType"])){
-				$this->_method_data["SubsciptionsType"] = "";
+			//legacy typo fix
+			if(isset($this->_method_data["SubsciptionsType"]) && $this->_method_data["SubsciptionsType"]){
+				if(!array_key_exists("SubscriptionsType",$this->_method_data)){
+					$this->_method_data["SubscriptionsType"] = $this->_method_data["SubsciptionsType"];
+				}
 			}
 			
-			$true_support = stripos($this->_method_data["SubsciptionsType"],"cof") !== false || stripos($this->_method_data["SubsciptionsType"],"recurring") !== false || stripos($this->_method_data["SubsciptionsType"],"mit") !== false;  
+			if(!isset($this->_method_data["SubscriptionsType"])){
+				$this->_method_data["SubscriptionsType"] = "";
+			}
+			
+			$true_support = stripos($this->_method_data["SubscriptionsType"],"cof") !== false || stripos($this->_method_data["SubscriptionsType"],"recurring") !== false || stripos($this->_method_data["SubscriptionsType"],"mit") !== false;  
 			$subscriptions_only_true_capable = HPay_Core::instance()->getSetting("subscriptions_only_true_capable", null) == 1;
 			
 			if($true_support || !$subscriptions_only_true_capable){
@@ -106,11 +112,11 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 				));
 			}
 			
-			if(stripos($this->_method_data["SubsciptionsType"],"cof") !== false || stripos($this->_method_data["SubsciptionsType"],"mit") !== false){
-				if($this->_method_data["SubsciptionsType"] == "cof-tokenization"){
-					$this->supports[] = 'tokenization';
-					$this->supports[] = 'subscription_amount_changes';
-				}
+			if(stripos($this->_method_data["SubscriptionsType"],"cof") !== false || stripos($this->_method_data["SubscriptionsType"],"mit") !== false){
+				$this->supports[] = 'tokenization';
+				$this->supports[] = 'subscription_amount_changes';
+				$this->supports[] = 'add_payment_method';
+				$this->supports[] = 'subscription_renewal_payments';
 			}
 		}				   
 		
@@ -119,7 +125,6 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 		
 		if(!isset($this->_method_data["Description"]))
 			$this->_method_data["Description"] = "-";
-		
 		
 		$this->title        =  $this->_method_data["Name"];
 		$this->description  =  $this->_method_data["Description"];
@@ -161,6 +166,44 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 		add_action( 'woocommerce_thankyou', array( $this, 'thankyou_global' ),1 );
 	}
 	
+	public function add_payment_method($no_redirect = false) {
+		try{
+			$save_vault_token_response = hpay_read_request_parm('save_vault_token_response');
+			if($save_vault_token_response){
+				$vault_response = json_decode($save_vault_token_response,true);
+				if(!$vault_response){
+					$vault_response = json_decode(stripcslashes($save_vault_token_response),true);
+				}
+				
+				$customer_user_id  = get_current_user_id();
+				$merchant_site_uid = HPay_Core::instance()->getSetting("merchant_site_uid","");
+				
+				$tlng = "en";
+				if(isset($vault_response["hpaylang"])){
+					$tlng = $vault_response["hpaylang"];
+				}
+				
+				$token = WC_Payment_Token_HPay::create_hpay_token($customer_user_id, $merchant_site_uid, $this->hpay_method_type(), 
+					@$vault_response["vault_card_brand"], 
+					@$vault_response["vault_card_umask"], 
+					@$vault_response["vault_exp"], 
+					 $vault_response["vault_token_uid"], 
+					@$vault_response["vault_scope"], 
+					@$vault_response["vault_onlyforuser"], 
+					$tlng);
+					
+				if($token && $token->vault_card_umask()){
+					if(!$no_redirect){
+						wp_safe_redirect(wc_get_endpoint_url('payment-methods'));
+						exit;
+					}
+				}
+			}
+		}catch(Throwable $ex){
+			wc_add_notice('Error saving card: ' . $ex->getMessage(), 'error');
+			hpay_write_log("error",$ex);
+		}
+	}
 	
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
 		if(HPay_Core::instance()->getSetting("enable_log","") == 1){
@@ -344,8 +387,59 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 						}
 					}
 					
+					$recurring_data = null;
+					
+					if($is_subscription && $cof != "required" && isset($this->_method_data) && stripos($this->_method_data["SubscriptionsType"],"recurring") !== false){
+						try {
+							if (!(isset($pay_request["monthly_installments"]) && $pay_request["monthly_installments"] > 1)) {
+								if (function_exists('wcs_get_subscriptions_for_order')) {
+									$subscriptions = wcs_get_subscriptions_for_order($order_id);
+									
+									foreach ($subscriptions as $subscription) {
+										$billing_period   = trim($subscription->get_billing_period());   // e.g., 'month'
+										$billing_period   = strtoupper(substr($billing_period,0,1)); 
+										if(!$billing_period){
+											$billing_period = "M";
+										}
+										$billing_interval = intval($subscription->get_billing_interval()); // e.g., 1
+										if(!$billing_interval){
+											$billing_interval = 1;
+										}
+										
+										$items = $subscription->get_items();
+										$billings_limit = 0; // Default to 0 (ongoing/no limit)
+										foreach ($items as $item) {
+											$product = $item->get_product();
+											if ($product) {
+												$billings_limit = WC_Subscriptions_Product::get_length($product);
+											}
+											break;
+										}
+										
+										$recurring_data = array(
+											"recurring_interval" => $billing_period,
+											"recurring_interval_value" => $billing_interval
+										);
+										
+										if($billings_limit){
+											if($billings_limit > 1){
+												$recurring_data["recurring_total_payments"] = $billings_limit;	
+											}else{
+												$recurring_data = null;
+											}
+										}
+										
+										break; 
+									}
+								}
+							}
+						} catch (Throwable $rex) {
+							hpay_write_log("error", $rex);
+						}
+					}
+					
 					///////////////////////////////////////////////////////////////////////////////////////////////////////////
-					$pay_request = HPay_Core::instance()->generateHPayRequest($order, $hpaymethod_id, $cof, $vault_token_uid, $subscription_uid);
+					$pay_request = HPay_Core::instance()->generateHPayRequest($order, $hpaymethod_id, $cof, $vault_token_uid, $subscription_uid, $recurring_data);
 					echo '<script type="text/javascript"> 
 							let __callHPayPayment  = function(){ HPayInit(HolestPayCheckout.merchant_site_uid, HolestPayCheckout.hpaylang).then(r => {  window.hpay_method_wcapi =' . json_encode($result_accept) . ';window.hpay_pay_wc_order_id=' . intval($order_id) . ';window.hpay_last_pay_req = ' . json_encode($pay_request) . ';  presentHPayPayForm(window.hpay_last_pay_req); }); };
 							if(typeof HPayInit !== "undefined"){
@@ -518,6 +612,15 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 			);
 		}
 		
+		if (hpay_read_request_parm('change_payment_method','')) {
+			
+			$this->add_payment_method(true);
+			
+			$current_url = home_url( add_query_arg( NULL, NULL ) );
+			wp_redirect( $current_url );
+			exit;
+		}
+		
 		$no_tokens = false;
 		if(isset($this->_method_data["No Card Tokenization"])){
 			if($this->_method_data["No Card Tokenization"]){
@@ -530,7 +633,7 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 		if($is_subscription){
 			$no_tokens = false;
 		}
-				
+		
 		$return_result = false;
 		$clear_cart = false;
 		
@@ -557,8 +660,6 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 				return;
 			}
 			
-			
-			
 			$vault_token_uid = "";
 			if($vault_token_id){
 				if(!ctype_digit("{$vault_token_id}")){
@@ -575,7 +676,12 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 					if($token){
 						$vault_token_uid = $token->vault_token_uid();
 					}else{
-						$vault_token_id = null;
+						$token = WC_Payment_Token_HPay::has_hpay_vault_token_uid($vault_token_id);
+						if($token){
+							$vault_token_uid = $token->vault_token_uid();
+						}else{
+							$vault_token_id = null;
+						}
 					}
 				}
 			}
@@ -622,9 +728,61 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 					"url" => admin_url('admin-ajax.php') . "?action=hpay-webhook&topic=payresult&pos_pm_id=" . $this->id
 				);
 				
+				$recurring_data = null;
+				
+				if($is_subscription && $cof != "required" && isset($this->_method_data) && stripos($this->_method_data["SubscriptionsType"],"recurring") !== false){
+					try {
+						if (!(isset($pay_request["monthly_installments"]) && $pay_request["monthly_installments"] > 1)) {
+							if (function_exists('wcs_get_subscriptions_for_order')) {
+								$subscriptions = wcs_get_subscriptions_for_order($order_id);
+								
+								foreach ($subscriptions as $subscription) {
+									$billing_period   = trim($subscription->get_billing_period());   // e.g., 'month'
+									$billing_period   = strtoupper(substr($billing_period,0,1)); 
+									if(!$billing_period){
+										$billing_period = "M";
+									}
+									$billing_interval = intval($subscription->get_billing_interval()); // e.g., 1
+									if(!$billing_interval){
+										$billing_interval = 1;
+									}
+									
+									$items = $subscription->get_items();
+									$billings_limit = 0; // Default to 0 (ongoing/no limit)
+									foreach ($items as $item) {
+										$product = $item->get_product();
+										if ($product) {
+											// This pulls the "Stop renewing after" value
+											$billings_limit = WC_Subscriptions_Product::get_length($product);
+										}
+										break; // As per your logic, we only care about the first product
+									}
+									
+									$recurring_data = array(
+										"recurring_interval" => $billing_period,
+										"recurring_interval_value" => $billing_interval
+									);
+									
+									if($billings_limit){
+										if($billings_limit > 1){
+											$recurring_data["recurring_total_payments"] = $billings_limit;	
+										}else{
+											$recurring_data = null;
+										}
+									}
+									
+									break; 
+								}
+							}
+						}
+					} catch (Throwable $rex) {
+						hpay_write_log("error", $rex);
+					}
+				}
+				
 				///////////////////////////////////////////////////////////////////////////////////////////////////////////
 				
-				$pay_request = HPay_Core::instance()->generateHPayRequest($order, $this->id, $cof, $vault_token_uid, $subscription_uid);
+				$pay_request = HPay_Core::instance()->generateHPayRequest($order, $this->id, $cof, $vault_token_uid, $subscription_uid, $recurring_data);
 								
 				return array(
 					'result'   => 'success',

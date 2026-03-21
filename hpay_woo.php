@@ -208,7 +208,6 @@ trait HPay_Core_Woo {
 									$company_tax_id_field =  $this->getSetting("tax_id_field","");
 								}
 								
-								
 								$is_company_field = "";
 								if($this->getSetting("is_company","") == 1){
 									$is_company_field =  "is_company";
@@ -883,6 +882,19 @@ trait HPay_Core_Woo {
 					}
 				}
 			}
+			
+			if(function_exists('wps_sfw_check_product_is_subscription')){
+				if(WC()->cart) {
+					foreach (WC()->cart->get_cart() as $cart_item) {
+						if (function_exists('wps_sfw_check_product_is_subscription')) {
+							if (wps_sfw_check_product_is_subscription($cart_item['data'])) {
+								return "wps_sfw";
+							}
+						}
+					}
+				}
+			}
+			
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);
 		}
@@ -904,6 +916,25 @@ trait HPay_Core_Woo {
 					}
 				}
 			}
+			
+			if(function_exists('wps_create_subscription')){
+				if(is_numeric($order_id_or_order)){
+					$order_id_or_order = hpay_get_order($order_id_or_order);
+				}
+				
+				if($order_id_or_order && !is_numeric($order_id_or_order)){
+					foreach ($order_id_or_order->get_items() as $item) {
+						$product_id = $item->get_product_id();
+						if (get_post_meta($product_id, '_wps_sfw_product', true) == 'yes') {
+							return "wps_sfw";
+						}
+					}
+					
+					if ($order_id_or_order->get_meta('_wps_sfw_contains_subscription') || $order_id_or_order->get_meta('wps_sfw_subscription_initial_signup_price')) {
+						return "wps_sfw";
+					}
+				}
+			}
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);
 		}
@@ -922,6 +953,15 @@ trait HPay_Core_Woo {
 				if($this->getSetting("yith_enable",false)){
 					if(ywsbs_is_an_order_with_subscription($order_id_or_order) == "renew"){
 						return "yith";
+					}
+				}
+			}
+			
+			if(function_exists('wps_create_subscription')){
+				$order = is_numeric($order_id_or_order) ? hpay_get_order($order_id_or_order) :  $order_id_or_order;
+				if($order){
+					if ($order->get_meta('wps_sfw_subscription') || $order->get_meta('wps_sfw_renewal_order')) {
+						return "wps_sfw";
 					}
 				}
 			}
@@ -972,6 +1012,44 @@ trait HPay_Core_Woo {
 		return $renewal_order;
 	}
 	
+	/**
+	 * Obrada obnove pretplate za WP Swings (Subscriptions For WooCommerce)
+	 * * @param WC_Order $renewal_order Nova porudžbina koja je tek kreirana
+	 * @param int $subscription_id ID pretplate (wps_subscriptions)
+	 */
+	public function wps_sfw_renewal_order_created_callback($renewal_order, $subscription_id) {
+		if (!$renewal_order) return;
+
+		try {
+			// Dobijamo metodu plaćanja direktno iz nove porudžbine
+			$payment_method = $renewal_order->get_payment_method();
+
+			// Proveravamo da li je plaćeno preko HPay-a
+			if (strpos($payment_method, "hpaypayment-") === 0) {
+				$hmethod = HPay_Core::payment_method_instance($payment_method);
+
+				if ($hmethod && $hmethod->supportsOperation("charge")) {
+					
+					// 1. Logika za odlaganje (kao u tvom originalnom kodu)
+					// Postavljamo timestamp za naplatu za 20 minuta (1200 sekundi)
+					$renewal_order->update_meta_data("_hpay_charge_after_ts", time() + 1200);
+					
+					// 2. Zabeležimo pokušaj (opciono, za tvoj log)
+					$renewal_order->update_meta_data("_hpay_charge_attempt_ts", time());
+					
+					// 3. Dodajemo belešku u porudžbinu da korisnik vidi šta se dešava
+					$renewal_order->add_order_note(__('HPay: Automatska naplata zakazana za 20 minuta.', 'hpay'));
+					
+					$renewal_order->save();
+
+					hpay_write_log("info", "HPay: WP Swings obnova detektovana. Zakazana naplata za Order #" . $renewal_order->get_id());
+				}
+			}
+		} catch (Throwable $ex) {
+			hpay_write_log("error", "HPay WP Swings Error: " . $ex->getMessage());
+		}
+	}
+	
 	public function wc_check_for_subscriptions_for_charge($check_for_order_id = null, $executionlimit_sec = 5){
 		$charge_count = 0;
 		
@@ -995,8 +1073,9 @@ trait HPay_Core_Woo {
 			foreach($pending_order_charges as $charge){
 				try{
 					$renewal = $this->wc_isSubsriptionRenewalOrder($charge->order_id);
-					
 					if($renewal){
+						
+						
 						$ts = time();
 						
 						$order = hpay_get_order($charge->order_id);
@@ -1115,6 +1194,27 @@ trait HPay_Core_Woo {
 		}
 	}
 	
+	public function hpay_wps_sfw_supported_payment_gateway($wps_supported_method, $key){
+		try{
+			if ( strpos( $key, 'hpaypayment-' ) === 0 ) {
+				$hmethod = HPay_Core::payment_method_instance($key);
+				if($hmethod){
+					if($hmethod->getHProp("SubscriptionsType")){
+						if(stripos($hmethod->getHProp("SubscriptionsType"),"mit") !== false || stripos($hmethod->getHProp("SubscriptionsType"),"cof") !== false){
+                            $hpay_allow = array($key);
+							$hpay_allow = $this->wc_filter_checkout_payment_gateways($hpay_allow);
+							if(!empty($hpay_allow))
+								$wps_supported_method[] = $key;
+						}	
+					}
+				}
+			}
+		}catch(Throwable $ex){
+			hpay_write_log("error",$ex);
+		}
+		return $wps_supported_method;
+	}
+	
 	public function wc_filter_checkout_payment_gateways($gateways){
 		try{
 			if(is_checkout() || is_cart()){
@@ -1129,7 +1229,6 @@ trait HPay_Core_Woo {
 						$hide = true;
 					}
 				}
-				
 				
 				foreach( $gateways as $paymentid => $data){
 					if(strpos($paymentid,"hpaypayment-") === 0){
@@ -1190,6 +1289,22 @@ trait HPay_Core_Woo {
 												unset($gateways[$paymentid]);
 												continue;
 											}
+										}
+									}
+									
+									$udata = $hmethod->getHProp("User Data");
+									if($udata){
+										try{
+											$is_subscription = HPay_Core::instance()->wc_cartHasSubsription();
+											if(!$is_subscription && stripos($udata,"only_for_subscriptions") !== false){
+												unset($gateways[$paymentid]);
+												continue;
+											}else if($is_subscription && stripos($udata,"not_for_subscriptions") !== false){
+												unset($gateways[$paymentid]);
+												continue;
+											}
+										}catch(Throwable $csex){
+											hpay_write_log("error",$csex);
 										}
 									}
 								}

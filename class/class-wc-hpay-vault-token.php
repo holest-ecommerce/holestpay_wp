@@ -66,6 +66,22 @@ class WC_Payment_Token_HPay extends WC_Payment_Token {
 		}
 	}
 	
+	public function vault_exp(){
+		try{
+			if(!$this->_token_data)
+				$this->_token_data = json_decode(parent::get_token(),true);
+			
+			if(!$this->_token_data)
+				return null;
+			if(isset($this->_token_data["vault_exp"]))
+				return $this->_token_data["vault_exp"];
+			else 
+				return "";
+		}catch(Throwable $ex){
+			return null;
+		}
+	}
+	
 	public function vault_card_umask(){
 		try{
 			if(!$this->_token_data)
@@ -199,7 +215,7 @@ class WC_Payment_Token_HPay extends WC_Payment_Token {
 		return $default;
 	}
 	
-	public static function create_hpay_token($customer_user_id, $merchant_site_uid, $hpaymethodtype, $vault_card_brand, $vault_card_umask, $vault_token_uid, $vault_scope, $vault_onlyforuser, $hpay_language = "en"){
+	public static function create_hpay_token($customer_user_id, $merchant_site_uid, $hpaymethodtype, $vault_card_brand, $vault_card_umask, $vault_exp, $vault_token_uid, $vault_scope, $vault_onlyforuser, $hpay_language = "en"){
 		try{
 			global $wpdb;
 			
@@ -227,7 +243,7 @@ class WC_Payment_Token_HPay extends WC_Payment_Token {
 			$existing_tokens = WC_Payment_Token_HPay::get_hpay_tokens($customer_user_id, null,  null, $vault_card_umask);
 			foreach($existing_tokens as $existing_token){
 				if($existing_token->vault_card_umask() == $vault_card_umask){
-					$default = $existing_token->is_default();
+					//$default = $existing_token->is_default();
 					$existing_token->delete();	
 					try{
 						$wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}woocommerce_payment_tokens WHERE token_id = %d", $existing_token->get_id()));
@@ -243,6 +259,7 @@ class WC_Payment_Token_HPay extends WC_Payment_Token {
 				"merchant_site_uid"   => $merchant_site_uid,
 				"vault_card_brand"    => $vault_card_brand,
 				"vault_card_umask"    => $vault_card_umask,
+				"vault_exp"           => $vault_exp,
 				"hpaymethodtype"      => $hpaymethodtype,
 				"vault_token_uid"     => $vault_token_uid,
 				"vault_onlyforuser"   => $vault_onlyforuser,

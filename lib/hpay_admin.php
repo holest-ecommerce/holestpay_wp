@@ -245,6 +245,7 @@ class HPay_Admin{
 								"last_used" => $token->token_time(),
 								"card_brand" => $token->vault_card_brand(),
 								"card_umask" => $token->vault_card_umask(),
+								"card_exp" => $token->vault_exp(),
 								"merchant_site_uid" => $token->merchant_site_uid(),
 								"hpaymethodtype" => $token->hpaymethodtype(),
 								"token_uid" => $token->vault_token_uid(),
@@ -260,7 +261,7 @@ class HPay_Admin{
 					wp_send_json(array("error" => "Not accepatable, customer user id not provided", "error_code" => 406),406);
 				}
 			}else{
-				wp_send_json(array("error" => "Not accepatable", "error_code" => 406),406);
+				wp_send_json(array("error" => "Not accepatable", "error_code" => 406 , "back_operations" => $json),406);
 			}
 		}catch(Throwable $mex){
 			hpay_write_log("error",$mex);
@@ -1363,7 +1364,7 @@ class HPay_Admin{
 						
 						
 						<p label="<?php echo esc_attr__("Checkout billing is company field","holestpay"); ?>" >
-							<select id="hpay_is_company_field" name="hpay_is_company_field">
+							<select id="hpay_is_company_field" name="hpay_is_company_field" class='hpay-trigger-on-set'>
 								<option value=''><?php echo esc_attr__("--none--","holestpay"); ?></option>
 								<?php 
 									foreach($checkout_fields_billing as $key => $field){
@@ -1373,13 +1374,13 @@ class HPay_Admin{
 								?>
 							</select>
 							<span label='<?php echo esc_attr__("add a is-company field","holestpay"); ?>' class='auto-label-width'>
-								<input type='checkbox' value='1' id="hpay_is_company" name='hpay_is_company' class='hpay-trigger-on-set' onchange="hpay_is_company_field.disabled = this.checked; if(this.checked){hpay_is_company_field.value =''; } " />
+								<input type='checkbox' value='1' id="hpay_is_company" name='hpay_is_company' class='hpay-trigger-on-set' onchange="hpay_is_company_field.disabled = this.checked; if(this.checked){hpay_is_company_field.value =''; jQuery(hpay_is_company_field).trigger('change'); } " />
 							</span>
 							<span class='hpay_note'>* <?php echo esc_attr__("if you use block checkout you must turn on 'company' address field","holestpay"); ?></span>
 						</p>
 						
 						<p label="<?php echo esc_attr__("Checkout billing company TAX ID field","holestpay"); ?>" >
-							<select id="hpay_tax_id_field" name="hpay_tax_id_field">
+							<select id="hpay_tax_id_field" name="hpay_tax_id_field" class='hpay-trigger-on-set'>
 								<option value=''><?php echo esc_attr__("--none--","holestpay"); ?></option>
 								<?php 
 									foreach($checkout_fields_billing as $key => $field){
@@ -1389,16 +1390,15 @@ class HPay_Admin{
 								?>
 							</select>
 							<span label='<?php echo esc_attr__("add a company TAX ID field","holestpay"); ?>' class='auto-label-width'>
-								<input type='checkbox' value='1' id="hpay_company_tax_id" name='hpay_company_tax_id' class='hpay-trigger-on-set' onchange="hpay_tax_id_field.disabled = this.checked; if(this.checked){hpay_tax_id_field.value =''; } " />
+								<input type='checkbox' value='1' id="hpay_company_tax_id" name='hpay_company_tax_id' class='hpay-trigger-on-set' onchange="hpay_tax_id_field.disabled = this.checked; if(this.checked){hpay_tax_id_field.value =''; jQuery(hpay_tax_id_field).trigger('change'); } " />
 							</span>
 							<span label='<?php echo esc_attr__("set required","holestpay"); ?>' class='auto-label-width'>
 								<input type='checkbox' value='1' name='hpay_tax_id_field_required' onchange="if(!hpay_tax_id_field.value && ! hpay_company_tax_id.checked) this.checked = false;" />
 							</span>
 						</p>
 						
-						
 						<p label="<?php echo esc_attr__("Checkout billing company registry ID field","holestpay"); ?>" >
-							<select id="hpay_reg_id_field" name="hpay_reg_id_field">
+							<select id="hpay_reg_id_field" name="hpay_reg_id_field" class='hpay-trigger-on-set'>
 								<option value=''><?php echo esc_attr__("--none--","holestpay"); ?></option>
 								<?php 
 								foreach($checkout_fields_billing as $key => $field){
@@ -1407,12 +1407,21 @@ class HPay_Admin{
 								?>
 							</select>
 							<span label='<?php echo esc_attr__("add a company registry ID field","holestpay"); ?>' class='auto-label-width'>
-								<input type='checkbox' value='1' id="hpay_company_reg_id" name='hpay_company_reg_id' class='hpay-trigger-on-set' onchange="hpay_reg_id_field.disabled = this.checked; if(this.checked){hpay_reg_id_field.value =''; } " />
+								<input type='checkbox' value='1' id="hpay_company_reg_id" name='hpay_company_reg_id' class='hpay-trigger-on-set' onchange="hpay_reg_id_field.disabled = this.checked; if(this.checked){hpay_reg_id_field.value =''; jQuery(hpay_reg_id_field).trigger('change'); } " />
 							</span>
 							<span label='<?php echo esc_attr__("set required","holestpay"); ?>' class='auto-label-width'>
 								<input type='checkbox' value='1' name='hpay_reg_id_field_required' onchange="if(!hpay_reg_id_field.value && ! hpay_company_reg_id.checked) this.checked = false;" />
 							</span>
 						</p>
+						
+						<script type='text/javascript'>
+							jQuery('#hpay_is_company_field,#hpay_tax_id_field,#hpay_reg_id_field').select2({
+								tags: true,              
+								multiple: false,         
+								allowClear: true,
+								placeholder: '<?php echo esc_attr__("choose | set custom meta","holestpay"); ?>'
+							});
+						</script>
 						
 						<p label="<?php echo esc_attr__("Add customer CC mail address(es) for order status updates field on the checkout","holestpay"); ?>" >
 							<input type='checkbox' value='1' name='hpay_billing_email_cc'  />
@@ -1598,7 +1607,6 @@ class HPay_Admin{
 							<p label="<?php echo esc_attr__("Embed results into WC mails","holestpay"); ?>" class='hpay_woo_embeded_mails'> <input type='checkbox' value='1' name='hpay_woo_embeded_mails' /> <span class='hpay_note'>(<?php echo esc_attr__("Check this if you want that all HPay results information intended for customers get embeded into WC mails. You can then turn off default HPay notifications.","holestpay"); ?>)</span></p>
 							<p label="<?php echo esc_attr__("Dock dockable payment methods","holestpay"); ?>" class='hpay_dock_payment_methods'> <input type='checkbox' value='1' name='hpay_dock_payment_methods' /> <span class='hpay_note'>(<?php echo esc_attr__("Use dock layout for payment methods that support it","holestpay"); ?>)</span></p>
 							
-							
 							<p label="<?php echo esc_attr__("Footer branding template","holestpay"); ?>" class='hpay_footer_template'> 
 								<select name="hpay_footer_template">
 									<option value="">--<?php echo esc_attr__("Not used","holestpay"); ?>--</option>
@@ -1622,26 +1630,38 @@ class HPay_Admin{
 							
 							<div class="hpay-woocommerce-subscriptions">
 								<h5><?php echo esc_attr__("WooCommerce & WooCommerce plugins integration","holestpay"); ?></h5>
-								<p class='hpay_supported_plugin'> WooCommerce Subscriptions <?php 
+								<p class='hpay_supported_plugin'> WooCommerce Subscriptions <a href='https://woocommerce.com/products/woocommerce-subscriptions/' target="_blank">plugin link...</a><?php 
 									echo esc_attr__("(natively supported)","holestpay"); 
 									echo ": "; 
 									if(class_exists("WC_Subscriptions")){
-										echo " " . esc_attr__("DETECTED","holestpay")." &#10003;";
+										echo " <span style='color:green'>" . esc_attr__("DETECTED","holestpay")." &#10003;</span>";
 									}else{
 										echo " " . esc_attr__("NOT DETECTED","holestpay");
 									}
-								?></p>	
-									
-								<p class='hpay_supported_plugin'> YITH WooCommerce Subscription: <?php 
+								?> (offical subscriptions plugin)</p>	
+								
+								<p class='hpay_supported_plugin'> Subscriptions For WooCommerce <a href='https://wordpress.org/plugins/subscriptions-for-woocommerce/' target="_blank">plugin link...</a> <?php 
+									if(function_exists('wps_create_subscription')){
+										echo " <span style='color:green'>" . esc_attr__("DETECTED","holestpay")." &#10003;</span>";
+									}else{
+										echo " " . esc_attr__("NOT DETECTED","holestpay");
+									}
+									?> (usable, has free version)
+								</p>
+								
+								<p class='hpay_supported_plugin'> YITH WooCommerce Subscription <a href='https://wordpress.org/plugins/yith-woocommerce-subscription/' target="_blank">plugin link...</a><?php 
 									if(function_exists('YITH_WC_Subscription')){
-										echo " " . esc_attr__("DETECTED","holestpay")." &#10003;";
+										echo " <span style='color:green'>" . esc_attr__("DETECTED","holestpay")." &#10003;</span>";
 										echo ", " .esc_attr__("Enable integration","holestpay");
 										echo ": <input type='checkbox' value='1' name='hpay_yith_enable' />";
 									}else{
 										echo " " . esc_attr__("NOT DETECTED","holestpay");
 									}
-									?>
+									?> (not recommended, can not create renewal itself)
 								</p>
+								
+								
+								
 								<br/>
 								<p label="<?php echo esc_attr__("Only card-on-file|mit|recurring capable payment methods for subscriptions","holestpay"); ?>" >
 									<input type='checkbox' value='1' name='hpay_subscriptions_only_true_capable' />

@@ -51,7 +51,7 @@ trait HPay_Core_Checkout{
 							if($default_chk){
 								$default_selected = true;
 							}
-							echo "<li token_time='" . esc_attr($token->token_time()) . "' token_id='" . esc_attr($token->get_id()) . "' class='hpay-vault " . ($token->is_default()? "hpay-detafult-vault" : "") . "' >";
+							echo "<li vault_exp='" . esc_attr($token->vault_exp()) . "' token_time='" . esc_attr($token->token_time()) . "' token_id='" . esc_attr($token->get_id()) . "' class='hpay-vault " . ($token->is_default()? "hpay-detafult-vault" : "") . "' >";
 							echo "<input {$no_choose}{$default_chk} type='radio' value='" . esc_attr($token_values ? $token->vault_token_uid() : $token->get_id()) . "' id='" . esc_attr($name_prefix) . "_vault_token_id_" . esc_attr($token->get_id()) . "' name='" . esc_attr($name_prefix) . "_vault_token_id' />";
 							echo " <label for='" . esc_attr($name_prefix) . "_vault_token_id_" . esc_attr($token->get_id()) . "'>&nbsp; <span class='hpay-token-brand hpay-token-brand-" . esc_attr(strtolower($token->vault_card_brand())) . "'>" . esc_attr($token->vault_card_brand()) . "</span>: ";
 							echo "" . esc_attr($token->vault_card_umask()) . "</label>";
@@ -331,6 +331,36 @@ trait HPay_Core_Checkout{
 				);
 			}
 			
+			// if($this->getSetting("shipping_municipality",'') == 1){
+				// try{
+					
+					// $fields['billing_municipality'] = array(
+						// 'label'       => __('Municipality', 'holestpay'),
+						// 'required'    => false,
+						// 'clear'       => false,
+						// 'type'        => 'text',
+						// 'class'       => array('hpay_billing_municipality',"hpay-not-required"),
+						// 'priority'    => 61,
+						// 'value'       => '',
+						// 'default'     => ''
+					// );
+					
+					// $fields['shipping_municipality'] = array(
+						// 'label'       => __('Municipality', 'holestpay'),
+						// 'required'    => false,
+						// 'clear'       => false,
+						// 'type'        => 'text',
+						// 'class'       => array('hpay_billing_municipality',"hpay-not-required"),
+						// 'priority'    => 61,
+						// 'value'       => '',
+						// 'default'     => ''
+					// );
+					
+				// }catch(Throwable $cfex){
+					// hpay_write_log("error",$cfex);
+				// }
+			// }
+			
 			if(is_admin()){
 				foreach($fields as $key => $fld){
 					$fields[$key]["class"] = implode(" ",$fields[$key]["class"]);
@@ -350,7 +380,6 @@ trait HPay_Core_Checkout{
 			add_filter( 'woocommerce_admin_billing_fields', array($this,'woocommerce_admin_billing_fields'),30);
 			add_filter( 'woocommerce_order_get_formatted_billing_address', array($this,'woocommerce_order_get_formatted_billing_address'), 50, 3 );
 			add_filter( 'woocommerce_update_order_review_fragments', array($this,'woocommerce_update_order_review_fragments'), 999, 3 );
-			
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);
 		}
@@ -390,17 +419,17 @@ trait HPay_Core_Checkout{
 				$b_data = $this->getAdditionalBillingData();
 				if($b_data){
 					foreach($b_data as $key => $value){
-						if(strpos($key,"_field") === false){
+						if($key && strpos($key,"_field") === false){
 							if($value && isset($b_data[$key."_field"]) && $b_data[$key."_field"]){
 								if(!$order)
 									$order = hpay_get_order( $order_id );
 								
 								if($order){
 									$m_key = $b_data[$key."_field"];
-									if(strpos($m_key,"_billing_") === false){
+									if($m_key && strpos($m_key,"_billing_") === false){
 										$m_key = "_billing_{$m_key}";
 									}
-									$order->update_meta_data($m_key , $value);
+									if($m_key) $order->update_meta_data($m_key , $value);
 								}
 							}
 						}
@@ -427,7 +456,7 @@ trait HPay_Core_Checkout{
 			if($this->getSetting("company_tax_id","") == 1){
 				return $order->get_meta("_billing_company_tax_id");
 			}else if($this->getSetting("tax_id_field","")){
-				return $order->get_meta("_" . $this->getSetting("tax_id_field",""));
+				return $order->get_meta("_" . ltrim($this->getSetting("tax_id_field",""),"_"));
 			}
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);
@@ -446,7 +475,7 @@ trait HPay_Core_Checkout{
 			if($this->getSetting("company_reg_id","") == 1){
 				return $order->get_meta("_billing_company_reg_id");
 			}else if($this->getSetting("reg_id_field","")){
-				return $order->get_meta("_" . $this->getSetting("reg_id_field",""));
+				return $order->get_meta("_" . ltrim($this->getSetting("reg_id_field",""),"_"));
 			}
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);
@@ -471,8 +500,8 @@ trait HPay_Core_Checkout{
 						return 0;
 					}
 				}else{
-					$val = trim(strtolower($order->get_meta("_" . $this->getSetting("is_company_field",""))));
-					if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos($val,"comp") !== false){
+					$val = trim(strtolower($order->get_meta("_" . ltrim($this->getSetting("is_company_field",""),"_"))));
+					if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos("{$val}","comp") !== false){
 						return 1;
 					}else{
 						return 0;
@@ -490,6 +519,10 @@ trait HPay_Core_Checkout{
 	public function running_is_company_value(){
 		$is_company_val = null;
 		try{
+			
+			if(!hpay_is_woo_payable_url())
+				return $is_company_val;
+			
 			$is_company_field = "";
 			if($this->getSetting("is_company","") == 1){
 				$is_company_field =  "billing_is_company";
@@ -497,11 +530,11 @@ trait HPay_Core_Checkout{
 				$is_company_field =  "billing_" . $this->getSetting("is_company_field","");
 			}
 			if($is_company_field){
-				$val = hpay_read_request_parm($is_company_field, WC()->checkout->get_value($is_company_field)); 
+				$val = hpay_read_request_parm($is_company_field, hpay_get_woo_checkout_value($is_company_field)); 
 				if($is_company_field == "company" || $is_company_field == "billing_company"){
 					return trim($val) ? 1 : 0; 
 				}
-				if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos($val,"comp") !== false){
+				if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos("{$val}","comp") !== false){
 					$is_company_val = 1;
 				}else{
 					$is_company_val = 0;
@@ -624,7 +657,7 @@ trait HPay_Core_Checkout{
 					}
 				}
 			}
-				
+			
 			if(!$added && !empty($add_fileds)){
 				foreach($add_fileds as $key => $def){
 					if($key == "billing_email_cc")

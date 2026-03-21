@@ -340,8 +340,63 @@ if(!function_exists('hpay_on_wp_redirect')){
 		return $status;
 	}
 }
-add_filter( 'wp_redirect_status', 'hpay_on_wp_redirect', 999, 2);
 
+if(!function_exists('hpay_is_woo_payable_url')){
+    function hpay_is_woo_payable_url(){
+		try{
+			if ( function_exists( 'is_checkout' ) ) {
+				
+				if(function_exists('is_checkout_pay_page')){
+					if(is_checkout_pay_page())
+						return true;
+				}
+				
+				if ( is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) && ! is_wc_endpoint_url( 'order-received' ) ) {
+					return true;
+				}
+				
+				if ( is_wc_endpoint_url( 'order-pay' ) ) {
+					return true;
+				}
+				
+				if ( is_checkout() ) {
+					return true;
+				}
+			}
+		}catch(Throwable $ex){
+			//
+		}
+		return false;
+	}
+}
+
+if(!function_exists('hpay_get_woo_checkout_value')){
+    function hpay_get_woo_checkout_value($field_key, $only_for_checkout = false){
+		try{
+			if($only_for_checkout && !hpay_is_woo_payable_url()){
+				return '';
+			}
+			
+			if ( function_exists( 'is_checkout' ) ) {
+				if ( is_admin() || ! did_action( 'woocommerce_loaded' ) ) {
+					return '';
+				}
+				if ( ! isset( WC()->session ) || ! isset( WC()->checkout ) ) {
+					return '';
+				}
+				if ( ! is_checkout() && ! is_add_payment_method_page()) {
+					return WC()->customer ? WC()->customer->{"get_$field_key"}() : '';
+				}
+				return WC()->checkout->get_value( $field_key );
+			}
+		}catch(Throwable $ex){
+			//
+		}
+		return '';
+	}
+}
+
+add_filter( 'wp_redirect_status', 'hpay_on_wp_redirect', 999, 2);
 
 add_action( 'before_woocommerce_init', function() {
 	try{
@@ -374,6 +429,9 @@ function HPay_init(){
 			class WC_Gateway_HPayPMPHOLDER9 extends WC_Gateway_HPayPayment{};class WC_Gateway_HPayPMPHOLDER10 extends WC_Gateway_HPayPayment{};
 			class WC_Gateway_HPayPMPHOLDER11 extends WC_Gateway_HPayPayment{};class WC_Gateway_HPayPMPHOLDER12 extends WC_Gateway_HPayPayment{};
 			class WC_Gateway_HPayPMPHOLDER13 extends WC_Gateway_HPayPayment{};class WC_Gateway_HPayPMPHOLDER14 extends WC_Gateway_HPayPayment{};
+			class WC_Gateway_HPayPMPHOLDER15 extends WC_Gateway_HPayPayment{};class WC_Gateway_HPayPMPHOLDER16 extends WC_Gateway_HPayPayment{};
+			class WC_Gateway_HPayPMPHOLDER17 extends WC_Gateway_HPayPayment{};class WC_Gateway_HPayPMPHOLDER18 extends WC_Gateway_HPayPayment{};
+			class WC_Gateway_HPayPMPHOLDER19 extends WC_Gateway_HPayPayment{};class WC_Gateway_HPayPMPHOLDER20 extends WC_Gateway_HPayPayment{};
 			///////////////////////////////////////////////////////////////////////////
 					
 			$settings = HPay_Core::instance()->getSettings();
@@ -409,13 +467,20 @@ function HPay_init(){
 			require_once(__DIR__ . "/class/class-wc-hpay-shipping-method.php");
 			
 			//SHIPPING METHOD PLACEHOLDER CLASSES///////////////////////////////////////
-			class WC_Gateway_HPaySMPHOLDER1 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER2 extends WC_HPay_Shipping_Method{};
-			class WC_Gateway_HPaySMPHOLDER3 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER4 extends WC_HPay_Shipping_Method{};
-			class WC_Gateway_HPaySMPHOLDER5 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER6 extends WC_HPay_Shipping_Method{};
-			class WC_Gateway_HPaySMPHOLDER7 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER8 extends WC_HPay_Shipping_Method{};
-			class WC_Gateway_HPaySMPHOLDER9 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER10 extends WC_HPay_Shipping_Method{};
-			class WC_Gateway_HPaySMPHOLDER11 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER12 extends WC_HPay_Shipping_Method{};
-			class WC_Gateway_HPaySMPHOLDER13 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER14 extends WC_HPay_Shipping_Method{};
+			try{
+				class WC_Gateway_HPaySMPHOLDER1 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER2 extends WC_HPay_Shipping_Method{};
+				class WC_Gateway_HPaySMPHOLDER3 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER4 extends WC_HPay_Shipping_Method{};
+				class WC_Gateway_HPaySMPHOLDER5 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER6 extends WC_HPay_Shipping_Method{};
+				class WC_Gateway_HPaySMPHOLDER7 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER8 extends WC_HPay_Shipping_Method{};
+				class WC_Gateway_HPaySMPHOLDER9 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER10 extends WC_HPay_Shipping_Method{};
+				class WC_Gateway_HPaySMPHOLDER11 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER12 extends WC_HPay_Shipping_Method{};
+				class WC_Gateway_HPaySMPHOLDER13 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER14 extends WC_HPay_Shipping_Method{};
+				class WC_Gateway_HPaySMPHOLDER15 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER16 extends WC_HPay_Shipping_Method{};
+				class WC_Gateway_HPaySMPHOLDER17 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER18 extends WC_HPay_Shipping_Method{};
+				class WC_Gateway_HPaySMPHOLDER19 extends WC_HPay_Shipping_Method{};class WC_Gateway_HPaySMPHOLDER20 extends WC_HPay_Shipping_Method{};
+			}catch(Throwable $ex){
+				hpay_write_log("error",$ex);
+			}
 			///////////////////////////////////////////////////////////////////////////
 					
 			$settings = HPay_Core::instance()->getSettings();

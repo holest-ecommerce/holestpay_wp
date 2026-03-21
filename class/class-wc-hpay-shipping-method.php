@@ -173,34 +173,26 @@ class WC_HPay_Shipping_Method extends WC_Shipping_Method {
 			WC()->cart->calculate_totals();
 			WC()->cart->calculate_shipping();	
 			
-			$chosen_shipping_method = null;
 			
-			if(WC()->session){
-				$chosen_shipping_method = WC()->session->get('chosen_shipping_methods');
-				if(!empty($chosen_shipping_method)){
-					$chosen_shipping_method = $chosen_shipping_method[0];
-					if(stripos($chosen_shipping_method,":") !== false){
-						$chosen_shipping_method = explode(":",$chosen_shipping_method);
-						$chosen_shipping_method = $chosen_shipping_method[0];
-					}
-				}else{
-					$chosen_shipping_method = null;
-				}
+			$hcart = HPay_Core::instance()->getHPayCart( null );
+			$hshipping_method_id = null;
+			
+			if($hcart && isset($hcart["shipping_method"]) && $hcart["shipping_method"]){
+				$hshipping_method_id = intval($hcart["shipping_method"]);
 			}
 			
-			if($chosen_shipping_method){
-				$hpay_shipping_method = HPay_Core::shipping_method_instance($chosen_shipping_method);
-				if($hpay_shipping_method){
-					
-					$hcart = HPay_Core::instance()->getHPayCart( null );
+			if($hcart && $hshipping_method_id){
+				$hpay_shipping_method = HPay_Core::shipping_method_instance($hshipping_method_id);
+				if($hpay_shipping_method && $hpay_shipping_method->hpay_id == $hshipping_method_id){
 					$cost     = $this->calculate_hpay_cost($hcart);
-					
-					foreach ( $order->get_items("shipping") as $item_id => $item ) {
-						if(stripos($item->get_method_id(),"hpayshipping-") !== false){
-							$item->set_total($cost);
-							$item->save();
-							$order->calculate_totals();
-							break;
+					if($order){
+						foreach ( $order->get_items("shipping") as $item_id => $item ) {
+							if(stripos($item->get_method_id(),"hpayshipping-") !== false){
+								$item->set_total($cost);
+								$item->save();
+								$order->calculate_totals();
+								break;
+							}
 						}
 					}
 				}
@@ -266,8 +258,14 @@ class WC_HPay_Shipping_Method extends WC_Shipping_Method {
 				
 				$free = false;
 				if($free_above_order_amount !== null){
-					if($cart_amount_in_currency >= $free_above_cart_amount)
+					if($cart_amount_in_currency >= $free_above_order_amount)
 						$free = true;
+				}
+				
+				if(isset($this->_method_data["Shipping Costs Handling"])){
+					if($this->_method_data["Shipping Costs Handling"] == "COD" || $this->_method_data["Shipping Costs Handling"] == "INFORMATIVE"){
+						$free = true;
+					}
 				}
 				
 				if(!$free){	
@@ -347,7 +345,7 @@ class WC_HPay_Shipping_Method extends WC_Shipping_Method {
 							}
 							
 							if($mul != 1){
-								$cost = $cost * mul;
+								$cost = $cost * $mul;
 							}
 						}
 					}

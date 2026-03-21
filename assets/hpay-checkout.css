@@ -41,13 +41,20 @@
     display:none;
 }
 
-.hpay-vault:after{
-	content:'/ ' attr(token_time);
+.hpay-vault:after,
+form#add_payment_method ul.hpay-vault-tokens li.hpay-vault[token_time]:after{
+	content:attr(vault_exp) ' | ' attr(token_time)!important;
 	position:absolute;
 	margin-top:-8px;
 	font-size:9px;
 	font-style:italic;
 	display:inline-block;
+	line-height: 0.8em;
+}
+
+form#add_payment_method .hpay-vault-tokens-title,
+form#add_payment_method .hpay-vault-tokens{
+	display:none;
 }
 
 .hpay-note, .hpay-info-note {
@@ -369,3 +376,4 @@ body.hpay-popup-shown{
 }
 
 .hpay-sm-options:empty{position:relative;padding-left:40px}.hpay-sm-options:empty:after{content:"";display:block;width:26px;height:26px;border-radius:50%;border:2px solid #ccc;border-top-color:#1b414b;position:absolute;left:0;top:50%;transform:translateY(-50%);animation:1s linear infinite spin;margin-left:50%;margin-top:-12px}@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}
+

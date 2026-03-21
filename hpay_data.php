@@ -55,12 +55,12 @@ trait HPay_Core_Data {
 			
 			if(WC()->checkout){
 				if($data["company_tax_id_field"])
-					$data["company_tax_id"] = WC()->checkout->get_value('billing_' .$data["company_tax_id_field"]);
+					$data["company_tax_id"] = hpay_get_woo_checkout_value('billing_' .$data["company_tax_id_field"],true);
 				if($data["company_reg_id_field"])
-					$data["company_reg_id"] = WC()->checkout->get_value('billing_' .$data["company_reg_id_field"]);
+					$data["company_reg_id"] = hpay_get_woo_checkout_value('billing_' .$data["company_reg_id_field"],true);
 				if($data["is_company_field"]){
-					$val = WC()->checkout->get_value('billing_' .$data["is_company_field"]);
-					if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos($val,"comp") !== false){
+					$val = hpay_get_woo_checkout_value('billing_' .$data["is_company_field"],true);
+					if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos("{$val}","comp") !== false){
 						$data["is_company"] = 1;
 					}else{
 						$data["is_company"] = 0;
@@ -114,7 +114,7 @@ trait HPay_Core_Data {
 			if(WC()->checkout){
 				$company = $cart_data->get_customer()->get_billing_company();
 				if(!$company){
-					$company = WC()->checkout->get_value('billing_company');
+					$company = hpay_get_woo_checkout_value('billing_company',true);
 				}
 			}
 			
@@ -311,6 +311,13 @@ trait HPay_Core_Data {
 				//
 			}
 			
+			$shipping_phone = "";
+			if ( is_callable( array( $cart_data->get_customer(), 'get_shipping_phone' ) ) ) {
+				$shipping_phone = $cart_data->get_customer()->get_shipping_phone();
+			} else {
+				$shipping_phone = $cart_data->get_customer()->get_meta('shipping_phone');
+			}
+			
 			$cart = array(
 				"cart_amount"       => wc_prices_include_tax() ? $cart_data->get_cart_contents_total() + $cart_data->get_cart_contents_tax() : $cart_data->get_cart_contents_total(),
 				"order_amount"      => WC()->cart->get_total('raw'),
@@ -338,7 +345,7 @@ trait HPay_Core_Data {
 					"is_cod"      => $chosen_payment_method == "cod",
 					"first_name"  => esc_attr($cart_data->get_customer()->get_shipping_first_name()),
 					"last_name"   => esc_attr($cart_data->get_customer()->get_shipping_last_name()),
-					"phone"       => esc_attr($cart_data->get_customer()->get_shipping_phone()),
+					"phone"       => esc_attr($shipping_phone),
 					"company"     => esc_attr($cart_data->get_customer()->get_shipping_company()),
 					"address"     => esc_attr($cart_data->get_customer()->get_shipping_address_1()),
 					"address2"    => esc_attr($cart_data->get_customer()->get_shipping_address_2()),
@@ -359,6 +366,12 @@ trait HPay_Core_Data {
 					)
 				)
 			);
+			
+			try{
+				$cart["is_subscription"] = HPay_Core::instance()->wc_cartHasSubsription();
+			}catch(Throwable $ex){
+				hpay_write_log("error",$ex);
+			}
 			
 			try{
 				if(HPay_Core::instance()->getSetting("always_require_vault","")){
@@ -443,7 +456,8 @@ trait HPay_Core_Data {
 			
 			if(!$hshipping_method){
 				$shipping_method_id  = null;  
-				$shipping_method = @array_shift($order->get_shipping_methods());
+				$sms = $order->get_shipping_methods();
+				$shipping_method = @array_shift($sms);
 				if($shipping_method){
 					if(isset($shipping_method['method_id']))
 						$shipping_method_id = $shipping_method['method_id'];
@@ -760,8 +774,13 @@ trait HPay_Core_Data {
 				return null;
 			}
 			
+			
+			$hshipping_method_id  = "0";  
+			$hpayment_method_id  = "0";  
+			
 			$shipping_method_id  = null;  
-			$shipping_method = @array_shift($order->get_shipping_methods());
+			$sms = $order->get_shipping_methods();
+			$shipping_method = @array_shift($sms);
 			if($shipping_method){
 				if(isset($shipping_method['method_id']))
 					$shipping_method_id = $shipping_method['method_id'];
@@ -769,6 +788,17 @@ trait HPay_Core_Data {
 			
 			if($shipping_method_id){
 				$shipping_method = HPay_Core::shipping_method_instance($shipping_method_id);
+				if($shipping_method){
+					$hshipping_method_id = $shipping_method->hpay_id;
+				}
+			}
+			
+			if(strpos($order->get_payment_method(),"hpaypayment-") === 0){
+				$hmp = $order->get_payment_method();
+				$hmp = str_replace("hpaypayment-","",$hmp);
+				if(intval($hmp)){
+					$hpayment_method_id  = ''.intval($hmp); 
+				}
 			}
 			
 			$order_items = $this->getOrderItems($order, $shipping_method);
@@ -840,6 +870,13 @@ trait HPay_Core_Data {
 				$order_name = "#" . esc_attr($order->get_id());
 			}
 			
+			$shipping_phone = "";
+			if ( is_callable( array( $order, 'get_shipping_phone' ) ) ) {
+				$shipping_phone = $order->get_shipping_phone();
+			} else {
+				$shipping_phone = $order->get_meta( '_shipping_phone' );
+			}
+			
 			$pay_request = array(
 				"merchant_site_uid" => esc_attr($this->getSetting("merchant_site_uid","")),
 				"order_uid"         => esc_attr($order->get_order_key()),
@@ -869,7 +906,7 @@ trait HPay_Core_Data {
 					"is_cod"      => $order->get_payment_method() == "cod",
 					"first_name"  => esc_attr($order->get_shipping_first_name()),
 					"last_name"   => esc_attr($order->get_shipping_last_name()),
-					"phone"       => esc_attr($order->get_shipping_phone()),
+					"phone"       => esc_attr($shipping_phone),
 					"company"     => esc_attr($order->get_shipping_company()),
 					"address"     => esc_attr($order->get_shipping_address_1()),
 					"address2"    => esc_attr($order->get_shipping_address_2()),
@@ -894,7 +931,7 @@ trait HPay_Core_Data {
 						$email_cc = str_replace(";",",",$email_cc);
 						$email_cc = explode(",",$email_cc);
 						$pay_request["order_billing"]["email_cc"] = implode(",",array_filter(array_map('trim',$email_cc),function($eml){
-							if(strpos($eml,"@") !== false && strpos($eml,".") !== false){
+							if($eml && strpos($eml,"@") !== false && strpos($eml,".") !== false){
 								return true;
 							}
 							return false;
@@ -911,10 +948,13 @@ trait HPay_Core_Data {
 				$hpay_status = $order->get_meta("_hpay_status");
 				if(!$hpay_status)
 					$hpay_status = "";
+				
 				if(stripos($hpay_status,"SHIPPING") === false){
 					$pay_request["shipping_method"] = $shipping_method->hpay_id;
 				}
 			}
+			
+			$pay_request["payment_method"] = $hpayment_method_id;
 			
 			try{
 				if(WC()->session){
@@ -930,12 +970,12 @@ trait HPay_Core_Data {
 								}
 							}
 							foreach($hcsd as $key => $value){
-								if(strpos($key,"_") === 0)
+								if(!$key || strpos($key,"_") === 0)
 									continue;
 								if(is_array($value)){
 									if(isset($pay_request[$key]) && $pay_request[$key]){
 										foreach($value as $k => $v){
-											if(strpos($k,"_") === 0)
+											if(!$k || strpos($k,"_") === 0)
 												continue;
 											$pay_request[$key][$k] = $v;
 											if(!$pay_request[$key][$k]) unset($pay_request[$key][$k]);
@@ -979,7 +1019,7 @@ trait HPay_Core_Data {
 		}
 	}
 	
-	public function generateHPayRequest($order, $pmethod_id = 'external', $cof = 'none', $vault_token_uid = '', $subscription_uid = ''){
+	public function generateHPayRequest($order, $pmethod_id = 'external', $cof = 'none', $vault_token_uid = '', $subscription_uid = '', $recurring_data = null){
 		if(!$order)
 			return null;
 		
@@ -1033,7 +1073,8 @@ trait HPay_Core_Data {
 			$shipping_method_id  = null;  
 			$hshipping_method_id = "0";
 			
-			$shipping_method = @array_shift($order->get_shipping_methods());
+			$sms = $order->get_shipping_methods();
+			$shipping_method = @array_shift($sms);
 			if($shipping_method){
 				if(isset($shipping_method['method_id']))
 					$shipping_method_id = $shipping_method['method_id'];
@@ -1065,6 +1106,13 @@ trait HPay_Core_Data {
 				$order_name = "#" . esc_attr($order->get_id());
 			}
 			
+			$shipping_phone = "";
+			if ( is_callable( array( $order, 'get_shipping_phone' ) ) ) {
+				$shipping_phone = $order->get_shipping_phone();
+			} else {
+				$shipping_phone = $order->get_meta( '_shipping_phone' );
+			}
+			
 			$pay_request = array(
 				"merchant_site_uid" => esc_attr($this->getSetting("merchant_site_uid","")),
 				"order_uid"         => esc_attr($order->get_order_key()),
@@ -1094,7 +1142,7 @@ trait HPay_Core_Data {
 					"is_cod"      => $order->get_payment_method() == "cod",
 					"first_name"  => esc_attr($order->get_shipping_first_name()),
 					"last_name"   => esc_attr($order->get_shipping_last_name()),
-					"phone"       => esc_attr($order->get_shipping_phone()),
+					"phone"       => esc_attr($shipping_phone),
 					"company"     => esc_attr($order->get_shipping_company()),
 					"address"     => esc_attr($order->get_shipping_address_1()),
 					"address2"    => esc_attr($order->get_shipping_address_2()),
@@ -1147,7 +1195,7 @@ trait HPay_Core_Data {
 						$email_cc = str_replace(";",",",$email_cc);
 						$email_cc = explode(",",$email_cc);
 						$pay_request["order_billing"]["email_cc"] = implode(",",array_filter(array_map('trim',$email_cc),function($eml){
-							if(strpos($eml,"@") !== false && strpos($eml,".") !== false){
+							if($eml && strpos($eml,"@") !== false && strpos($eml,".") !== false){
 								return true;
 							}
 							return false;
@@ -1174,12 +1222,12 @@ trait HPay_Core_Data {
 								}
 							}
 							foreach($hcsd as $key => $value){
-								if(strpos($key,"_") === 0)
+								if(!$key || strpos($key,"_") === 0)
 									continue;
 								if(is_array($value)){
 									if(isset($pay_request[$key]) && $pay_request[$key]){
 										foreach($value as $k => $v){
-											if(strpos($k,"_") === 0)
+											if(!$k || strpos($k,"_") === 0)
 												continue;
 											$pay_request[$key][$k] = $v;
 											if(!$pay_request[$key][$k]) unset($pay_request[$key][$k]);
@@ -1202,6 +1250,16 @@ trait HPay_Core_Data {
 				}
 			}catch(Throwable $sesex){
 				hpay_write_log("error",$sesex);
+			}
+			
+			try{
+				if($recurring_data){
+					foreach($recurring_data as $key => $val){
+						$pay_request[$key] = $val;
+					}
+				}
+			}catch(Throwable $rex){
+				hpay_write_log("error",$rex);
 			}
 			
 			try{

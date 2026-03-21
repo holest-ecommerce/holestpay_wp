@@ -783,31 +783,41 @@ if(typeof jQuery !== 'undefined' ){
 					if(HolestPayAdmin.settings && settings_panel[0]){
 						for(let prop in HolestPayAdmin.settings){
 							if(HolestPayAdmin.settings.hasOwnProperty(prop)){
-								
-								if(prop == "custom_plugin_integrations"){
-									hpay_show_custom_integrations(HolestPayAdmin.settings.custom_plugin_integrations);
-									continue;
-								}
-								
-								let inp = settings_panel.find("*[name='hpay_" + prop + "']")[0];
-								if(inp){
-									if(jQuery(inp).is("input[type='checkbox']")){
-										jQuery(inp).prop("checked",HolestPayAdmin.settings[prop] ? (HolestPayAdmin.settings[prop] == "no" ? false : true) : false);	
+								try{
+									if(prop == "custom_plugin_integrations"){
+										hpay_show_custom_integrations(HolestPayAdmin.settings.custom_plugin_integrations);
+										continue;
+									}
+									
+									let inp = settings_panel.find("*[name='hpay_" + prop + "']")[0];
+									if(inp){
+										if(jQuery(inp).is("input[type='checkbox']")){
+											jQuery(inp).prop("checked",HolestPayAdmin.settings[prop] ? (HolestPayAdmin.settings[prop] == "no" ? false : true) : false);	
+										}else if(jQuery(inp).is("input[type='radio']")){
+											settings_panel.find("input[name='hpay_" + prop + "'][value='" + String(HolestPayAdmin.settings[prop]) + "']").prop("checked",true);
+										}else{
+											if(HolestPayAdmin.settings[prop] && jQuery(inp).is('select')){
+												if(!jQuery(inp).find('option[value="' + HolestPayAdmin.settings[prop] + '"]')[0]){
+													jQuery("<option></option>").attr('value',HolestPayAdmin.settings[prop]).html(HolestPayAdmin.settings[prop]).appendTo(inp);
+												}
+											}
+										
+											jQuery(inp).val(HolestPayAdmin.settings[prop]);	
+											
+										}
+										
 										if(jQuery(inp).is(".hpay-trigger-on-set")){
 											setTimeout(function(){
 												jQuery(inp).trigger("change");
 											},150);
 										}
-									}else if(jQuery(inp).is("input[type='radio']")){
-										settings_panel.find("input[name='hpay_" + prop + "'][value='" + String(HolestPayAdmin.settings[prop]) + "']").prop("checked",true);
-									}else{
-										jQuery(inp).val(HolestPayAdmin.settings[prop]);	
 									}
+								}catch(ex){
+									
 								}
 							}
 						}
 					}
-					
 					testConnection(true);
 					
 					checkWooPendingStatus();

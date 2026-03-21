@@ -42,9 +42,27 @@ trait HPay_Core_WooGUI {
 			add_action( 'woocommerce_after_single_product_summary', array( $this, 'woocommerce_after_single_product_summary' ), 3);
 			
 			add_filter( 'woocommerce_available_variation', array( $this, 'woocommerce_available_variation' ), 99, 3);
+			
+			add_filter( 'woocommerce_my_account_my_orders_actions', array( $this, 'add_custom_order_button'), 10, 2 );
+
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);
 		}
+	}
+	
+	function add_custom_order_button( $actions, $order ) {
+		// You can add conditions here, e.g., only show for specific order statuses
+		
+		$hpay_status = $order->get_meta('_hpay_status');
+		
+		if ( strpos($hpay_status,"PAID") === false && strpos($hpay_status,"RESERVED") === false){
+			$actions['hpay_direct_pay'] = array(
+				'url'  => '/hpay_direct_pay/' . $order->get_id(), 
+				'name' => __( 'PAY NOW...', 'holestpay' ),  
+			);
+		}
+
+		return $actions;
 	}
 	
 	function woocommerce_add_cart_item_data($cart_item_data){
