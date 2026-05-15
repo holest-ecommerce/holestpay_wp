@@ -78,6 +78,8 @@ class HPay_Core {
 		
 		add_action( 'init',  array( $this, 'onInit'), 999);
 		
+		add_filter( 'woocommerce_cancel_unpaid_order', array( $this, 'maybe_prevent_hold_stock_cancel'), 99, 2 );
+		
 		try{
 			$this->upgrade_setup();
 		}catch(Throwable $ex){
@@ -215,6 +217,20 @@ class HPay_Core {
 			hpay_write_log("error",$ex);
 		}
 		
+	}
+	
+	public function maybe_prevent_hold_stock_cancel($should_cancel, $order){
+		try{
+			$charge_tries = $order->get_meta('_hpay_charge_tries');
+			if ( is_numeric( $charge_tries ) && (int) $charge_tries < 3 ) {
+				return false; // Do NOT cancel the order
+			}else if($order->meta_exists( '_hpay_charge_tries' ) && !is_numeric( $charge_tries )){
+				return false; // Do NOT cancel the order
+			}
+		}catch(Throwable $ex){
+			hpay_write_log("error",$ex);
+		}
+		return $should_cancel;
 	}
 	
 	public function onPluginsLoaded(){
