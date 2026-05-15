@@ -13,6 +13,7 @@ class WC_Payment_Token_HPay extends WC_Payment_Token {
 	protected $extra_data = array();
 	
 	private $_token_data = null;
+	private $_user_tokens = null;
 	
 	protected function get_hook_prefix() {
 		return 'woocommerce_payment_token_hpay_get_';
@@ -176,17 +177,20 @@ class WC_Payment_Token_HPay extends WC_Payment_Token {
 			return parent::set_default($default);
 		}
 		global $wpdb;
-		global $hpay_wc_payment_token_hpay_default_cache;
-		if(!isset($hpay_wc_payment_token_hpay_default_cache)){
-			$hpay_wc_payment_token_hpay_default_cache = array();
-		}
+		
 			
 		try{
-			if($default){
-				$wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}woocommerce_payment_tokens SET is_default = 0 WHERE gateway_id = %s", 'hpay'));
+			$currently_is_default = $this->is_default();
+			if(!!$default != !!$currently_is_default){
+				if($this->_user_tokens && isset($this->_user_tokens[$this->get_id()])){
+					$this->_user_tokens[$this->get_id()]->is_default = $default;
+				}
+				$wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}woocommerce_payment_tokens SET is_default = %d WHERE token_id = %d", $default ? 1: 0, $this->get_id()));
+				if($default){
+					$wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}woocommerce_payment_tokens SET is_default = 0 WHERE gateway_id = %s and user_id = %d", 'hpay',$this->get_user_id()));
+				}
 			}
-			$wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}woocommerce_payment_tokens SET is_default = %d WHERE token_id = %d", $default ? 1: 0, $this->get_id()));
-			$hpay_wc_payment_token_hpay_default_cache[$this->get_id()] = $default ? 1: 0;
+			
 		}catch(Throwable $ex){
 			//
 		}
@@ -199,16 +203,29 @@ class WC_Payment_Token_HPay extends WC_Payment_Token {
 		}
 		global $wpdb;
 		try{
-			global $hpay_wc_payment_token_hpay_default_cache;
-			if(!isset($hpay_wc_payment_token_hpay_default_cache)){
-				$hpay_wc_payment_token_hpay_default_cache = array();
-			}else{
-				if(isset($hpay_wc_payment_token_hpay_default_cache[$this->get_id()])){
-					return $hpay_wc_payment_token_hpay_default_cache[$this->get_id()];
+			
+			global $hpay_utoken_hash;
+			if(!isset($hpay_utoken_hash)){
+				$hpay_utoken_hash = array();
+			}
+			
+			if(!$this->_user_tokens){
+				if(isset($hpay_utoken_hash[$this->get_user_id()])){
+					$this->_user_tokens = $hpay_utoken_hash[$this->get_user_id()];
+				}else{
+					$res = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}woocommerce_payment_tokens WHERE user_id = %d", $this->get_user_id()));
+					$this->_user_tokens = array_column($res, null, 'token_id');
+					$hpay_utoken_hash[$this->get_user_id()] = $this->_user_tokens;
 				}
 			}
-			$default = $wpdb->get_col($wpdb->prepare("SELECT is_default FROM {$wpdb->prefix}woocommerce_payment_tokens WHERE token_id = %d", $this->get_id()));
-			$hpay_wc_payment_token_hpay_default_cache[$this->get_id()] = $default;
+			
+			$default = false;
+			if($this->_user_tokens && isset($this->_user_tokens[$this->get_id()])){
+				$default = $this->_user_tokens[$this->get_id()]->is_default;
+			}else{
+				$default = $wpdb->get_col($wpdb->prepare("SELECT is_default FROM {$wpdb->prefix}woocommerce_payment_tokens WHERE token_id = %d", $this->get_id()));	
+			}
+			
 		}catch(Throwable $ex){
 			//
 		}

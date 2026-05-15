@@ -37,7 +37,8 @@ class HPay_Core {
 		"woo_status_map_partial_refund" => "",
 		"woo_status_map_shipped"      => "",
 		"woo_status_set_policy"       => "each",
-		"manage_all_orders"           => 1 
+		"manage_all_orders"           => 1,
+		"dock_payment_methods"        => 1
 	);
 	
 	private function __construct(){
@@ -1108,7 +1109,7 @@ class HPay_Core {
 			
 			$response = wp_remote_post( $call_url, array(
 					'method'      => 'POST',
-					'timeout'     => 29,
+					'timeout'     => 22,
 					'redirection' => 5,
 					'httpversion' => '1.0',
 					'blocking'    => $blocking,
@@ -1241,7 +1242,7 @@ class HPay_Core {
 			
 			$response = wp_remote_post( $call_url, array(
 					'method'      => 'POST',
-					'timeout'     => 29,
+					'timeout'     => 22,
 					'redirection' => 5,
 					'httpversion' => '1.0',
 					'blocking'    => true,

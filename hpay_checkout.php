@@ -29,7 +29,6 @@ trait HPay_Core_Checkout{
 			}
 			
 			?>
-				
 				<ul class='hpay-vault-tokens'>
 					<?php
 					
@@ -613,7 +612,8 @@ trait HPay_Core_Checkout{
 								continue;
 							
 							if($key == "billing_is_company"){
-								$company_field = $fileds_n[$admin_order_id ? "company" : "billing_company"];
+								if(isset($fileds_n[$admin_order_id ? "company" : "billing_company"]))
+									$company_field = $fileds_n[$admin_order_id ? "company" : "billing_company"];
 								unset($fileds_n[$admin_order_id ? "company" : "billing_company"]);
 							}
 								
@@ -646,10 +646,15 @@ trait HPay_Core_Checkout{
 							}
 							
 							if($key == "billing_is_company"){
+								
+								if($company_field){
+									$fileds_n[$admin_order_id ? "company" : "billing_company"] = $company_field;
+								}
+								
 								$is_key = $admin_order_id ? "is_company" : "billing_is_company";
 								$c_key = $admin_order_id ? "company" : "billing_company";
 								
-								if(isset($fileds_n[ $is_key ])) $fileds_n[ $is_key ]["priority"] = $company_field["priority"];
+								if(isset($fileds_n[ $is_key ])) $fileds_n[ $is_key ]["priority"] = $company_field["priority"] - 1;
 								if(isset($fileds_n[ $c_key ])) $fileds_n[ $c_key ] = $company_field;
 							}
 						}

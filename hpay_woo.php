@@ -21,7 +21,7 @@ trait HPay_Core_Woo {
 			add_action( "woocommerce_blocks_loaded", array($this,"setup_checkout_blocks_api"));
 			add_filter( 'woocommerce_order_is_partially_refunded',array( $this, 'woocommerce_order_is_partially_refunded'), 99999,3);
 			
-			add_action( "plugins_loaded", array($this,'plugins_loaded'),20);
+			add_action( "init", array($this,'plugins_loaded'),20);
 			
 			add_action("woocommerce_order_refunded", array($this,'woocommerce_order_refunded'),50,2);
 			
@@ -428,7 +428,7 @@ trait HPay_Core_Woo {
 				if(!$last_refund_ts)
 					$last_refund_ts = 0;
 				
-				if($last_refund_ts + 60 < time())//FIX NUMI
+				if($last_refund_ts + 30 < time())//FIX NUMI
 					$order->update_status($status, $comment);
 				
 				if(isset($hpay_mapped_status_dict[$order->get_id()])){
@@ -714,12 +714,12 @@ trait HPay_Core_Woo {
 				$hpay_status = $order->get_meta("_hpay_status");
 			}
 			
-			if(!$order->get_payment_method() || !$is_hpay_pm || ($is_hpay_pm && !$hpay_status)){
+			//if(!$order->get_payment_method() || !$is_hpay_pm || ($is_hpay_pm && !$hpay_status)){
 				$store = $this->should_store_wc_order($order_id, true);
 				if($store){
 					$this->store_order($order_id);
 				}
-			} 
+			//} 
 			
 			if(HPAY_DEBUG_TRACE)
 				hpay_write_log("trace","status change trigger checkCallFiscalOrIntegrationActions:" . $order_id . ":" . $new_status);

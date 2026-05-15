@@ -352,8 +352,17 @@ body.hpay-popup-shown{
 	opacity:1;
 }
 
+/*
 .is-company-order-no *:has(> #billing_is_company_field) *:has(*[hpay_checkout_field='company'],*[hpay_checkout_field='company_tax_id'],*[hpay_checkout_field='company_reg_id']){
 	display:none;
+}
+*/
+
+/* Block checkout: hide company field wrappers tagged by JS when not ordering as company */
+body.is-company-order-no [hpay_checkout_field='company'],
+body.is-company-order-no [hpay_checkout_field='company_tax_id'],
+body.is-company-order-no [hpay_checkout_field='company_reg_id']{
+	display:none!important;
 }
 
 .is-company-order-yes *:has(> #billing_is_company_field) *:has(*[hpay_checkout_field='company'],*[hpay_checkout_field='company_tax_id'],*[hpay_checkout_field='company_reg_id']) .optional{
@@ -375,5 +384,8 @@ body.hpay-popup-shown{
 	display:none;
 }
 
-.hpay-sm-options:empty{position:relative;padding-left:40px}.hpay-sm-options:empty:after{content:"";display:block;width:26px;height:26px;border-radius:50%;border:2px solid #ccc;border-top-color:#1b414b;position:absolute;left:0;top:50%;transform:translateY(-50%);animation:1s linear infinite spin;margin-left:50%;margin-top:-12px}@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}
-
+.hpay-sm-options:empty{position:relative;padding-left:40px}
+.hpay-sm-options:empty:after{content:"";display:block;width:26px;height:26px;border-radius:50%;border:2px solid #ccc;border-top-color:#1b414b;position:absolute;left:0;top:50%;transform:translateY(-50%);animation:1s linear infinite spin;margin-left:50%;margin-top:-12px}@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}
+.hpay-sm-options[dispensers_loaded]:empty:after{
+	display:none;
+}

@@ -368,7 +368,7 @@ class HPay_Admin{
 						<p style="text-align:left">&nbsp;</p>
 												
 						<?php
-						wc_get_template( 'order/order-details.php', array( 'order' => $order, "order_id" => $order_id ) );
+						wc_get_template( 'order/order-details.php', array( 'order' => $order, "order_id" => $order_id, 'show_downloads' => true ) );
 						?>
 						</div>
 					</div>	
@@ -1605,7 +1605,7 @@ class HPay_Admin{
 							<p label="<?php echo esc_attr__("Payment at 'thank you' page","holestpay"); ?>" class='hpay_thank_you_page_payment'> <input type='checkbox' value='1' name='hpay_thank_you_page_payment' /> <span class='hpay_note'>(<?php echo esc_attr__("enable if you want to first send customer to the 'thank you' page (by default payment runs straight at the checkout page)","holestpay"); ?>)</span></p>
 							<p label="<?php echo esc_attr__("Allways store orders to HPay","holestpay"); ?>" class='hpay_manage_all_orders'> <input type='checkbox' value='1' name='hpay_manage_all_orders' /> <span class='hpay_note'>(<?php echo esc_attr__("Check this if you want HPay to record all orders no matter if HPay payment, shipping, integration or fiscal operation take place","holestpay"); ?>)</span></p>
 							<p label="<?php echo esc_attr__("Embed results into WC mails","holestpay"); ?>" class='hpay_woo_embeded_mails'> <input type='checkbox' value='1' name='hpay_woo_embeded_mails' /> <span class='hpay_note'>(<?php echo esc_attr__("Check this if you want that all HPay results information intended for customers get embeded into WC mails. You can then turn off default HPay notifications.","holestpay"); ?>)</span></p>
-							<p label="<?php echo esc_attr__("Dock dockable payment methods","holestpay"); ?>" class='hpay_dock_payment_methods'> <input type='checkbox' value='1' name='hpay_dock_payment_methods' /> <span class='hpay_note'>(<?php echo esc_attr__("Use dock layout for payment methods that support it","holestpay"); ?>)</span></p>
+							<p label="<?php echo esc_attr__("Dock dockable payment methods","holestpay"); ?>" class='hpay_dock_payment_methods'> <input type='checkbox' value='1' name='hpay_dock_payment_methods' checked='checked' /> <span class='hpay_note'>(<?php echo esc_attr__("Use dock layout for payment methods that support it","holestpay"); ?>)</span></p>
 							
 							<p label="<?php echo esc_attr__("Footer branding template","holestpay"); ?>" class='hpay_footer_template'> 
 								<select name="hpay_footer_template">

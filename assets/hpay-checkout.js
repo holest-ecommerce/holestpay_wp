@@ -169,6 +169,7 @@
 				}
 			}
 			
+			let s_adapt_needed = false;
 			let sipping_m = document.querySelectorAll("input[value^='hpayshipping-']");
 			if(sipping_m && sipping_m.length){
 				for(var el of sipping_m){
@@ -184,6 +185,7 @@
 							el.parentNode.appendChild(sm_options);
 							if(HolestPayCheckout.cart.shipping_method == smid){
 								sm_options.style.display = 'block';	
+								s_adapt_needed = true;
 							}
 						}
 					}else{
@@ -195,6 +197,7 @@
 								sm_options.style.display = 'none';
 							}else if(HolestPayCheckout.cart.shipping_method == smid){
 								sm_options.style.display = 'block';	
+								s_adapt_needed = true;
 							}else{
 								sm_options.style.display = 'none';
 							}	
@@ -205,14 +208,12 @@
 			
 			if(HolestPayCheckout.cart.shipping_method){
 				try{
-					if(prev_hpay_shipping_method && prev_hpay_shipping_method.HPaySiteMethodId == HolestPayCheckout.cart.shipping_method){
+					if(!s_adapt_needed && prev_hpay_shipping_method && prev_hpay_shipping_method.HPaySiteMethodId == HolestPayCheckout.cart.shipping_method){
 						return;	
 					}
 					
 					HPayInit(async function(client){ 
-					   
-					    
-						let smethod = HPay.POS.shipping.find(s => s.HPaySiteMethodId == HolestPayCheckout.cart.shipping_method);
+					    let smethod = HPay.POS.shipping.find(s => s.HPaySiteMethodId == HolestPayCheckout.cart.shipping_method);
 						if(smethod && smethod.AdaptCheckout){
 							try{
 								adapted_checkout_destroy = smethod.AdaptCheckout({
@@ -263,39 +264,44 @@
 		}
 		
 		function update_hpay_pay_dock(pm_id){
-			
-			if(typeof HPay === 'undefined' || !window.HPay){
-				window.__oninit_call_pdate_hpay_pay_dock = () => {
-					update_hpay_pay_dock(pm_id);
-				};
-				
-				document.addEventListener("onHPayClientFirstInit",function(e){
-					if(window.__oninit_call_pdate_hpay_pay_dock)
-						window.__oninit_call_pdate_hpay_pay_dock();
-				});
-			}
-			
-			if(typeof HPay !== 'undefined' && HPay && HPay.setPaymentMethodDock && HolestPayCheckout && HolestPayCheckout.dock_payment_methods){
-				if(!pm_id){
-					HPay.setPaymentMethodDock(null);
-					return;
+			try{
+				if(typeof HPay === 'undefined' || !window.HPay){
+					window.__oninit_call_pdate_hpay_pay_dock = () => {
+						update_hpay_pay_dock(pm_id);
+					};
+					
+					document.addEventListener("onHPayClientFirstInit",function(e){
+						if(window.__oninit_call_pdate_hpay_pay_dock)
+							window.__oninit_call_pdate_hpay_pay_dock();
+					});
 				}
 				
-				let cnt = jQuery("div[data-hpay-dock-pmethod='" + pm_id + "']")[0];
-				let vault_selector = null;
-				
-				if(cnt){
-					vault_selector = cnt.getAttribute('data-hpay-dock-ptokenref-selector') || "";
+				if(typeof HPay !== 'undefined' && HPay && HPay.setPaymentMethodDock && HolestPayCheckout && HolestPayCheckout.dock_payment_methods){
+					if(!pm_id){
+						HPay.setPaymentMethodDock(null);
+						return;
+					}
+					
+					let cnt = jQuery("div[data-hpay-dock-pmethod='" + pm_id + "']")[0];
+					let vault_selector = null;
+					
+					if(cnt){
+						vault_selector = cnt.getAttribute('data-hpay-dock-ptokenref-selector') || "";
+					}
+					
+					let hcart = HolestPayCheckout.cart || {};
+					
+					HPay.setPaymentMethodDock(pm_id, {
+						order_amount: hcart.order_amount || 0.00,//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
+						order_currency: hcart.order_currency || "",//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
+						monthly_installments: hcart.monthly_installments || null,//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
+						vault_token_uid: vault_selector || "",//may be element, selector or actual value. Selector may contain {$pmid} replace makro,
+						hpaylang: HolestPayCheckout.hpaylang || "en",
+						cof: hcart.cof || "" 	
+					},cnt);// cnt - element or selector. Defaults to first visible div element with data-hpay-dock-payment attribute. Selector may contain {$pmid} replace makro  
 				}
-				
-				HPay.setPaymentMethodDock(pm_id, {
-					order_amount: HolestPayCheckout.cart.order_amount,//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
-					order_currency: HolestPayCheckout.cart.order_currency,//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
-					monthly_installments: HolestPayCheckout.cart.monthly_installments || null,//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
-					vault_token_uid: vault_selector,//may be element, selector or actual value. Selector may contain {$pmid} replace makro,
-					hpaylang: HolestPayCheckout.hpaylang,
-					cof: HolestPayCheckout.cart.cof || "" 	
-				},cnt);// cnt - element or selector. Defaults to first visible div element with data-hpay-dock-payment attribute. Selector may contain {$pmid} replace makro  
+			}catch(ex){
+				console.error(ex);
 			}
 		}
 		
@@ -1085,156 +1091,379 @@ addEventListener("DOMContentLoaded", (event) => {
 	};
 	
 	
-	if(typeof HolestPayCheckout !== 'undefined' && typeof React !== 'undefined'){
-		React._hpay_createElement = React.createElement;
-		
+	if(typeof HolestPayCheckout !== 'undefined'){
+		const isBlockCheckout = typeof wc !== 'undefined' && wc && wc.blocksCheckout;
+
 		let order_billing = null;
-		
-		let __callUpdateCompanyFields = null;
-		const updateCompanyFields = () => {
-			__callUpdateCompanyFields = null;
-			
+		let __callUpdateCompanyFieldsTimer = null;
+		let _isCompanyIsCompanyField = false;
+		let _initialSyncDone = false; // ensure one initial extensionCartUpdate push per page load
+
+		const queryField = (selector) => {
+			if(!selector) return null;
+			try{ return document.querySelector(selector); }catch(e){ return null; }
+		};
+
+		const updateCompanyFields = function() {
+			__callUpdateCompanyFieldsTimer = null;
 			if(!order_billing) return;
-			
-			let is_company = order_billing.is_company || 0;
-			if(!HolestPayCheckout.cart.UI.checkout_fields.is_company){
-				is_company = null;
+			var fields = HolestPayCheckout && HolestPayCheckout.cart && HolestPayCheckout.cart.UI && HolestPayCheckout.cart.UI.checkout_fields;
+			if(!fields) return;
+
+			var is_company = order_billing.is_company || 0;
+			if(!fields.is_company) is_company = null;
+
+			var send_data = {
+				is_company: is_company,
+				company_tax_id: (is_company === null || is_company) ? (order_billing.company_tax_id || "") : "",
+				company_reg_id: (is_company === null || is_company) ? (order_billing.company_reg_id || "") : ""
+			};
+			if(is_company === 0) send_data.company = '';
+
+			// Keep HolestPayCheckout.cart.order_billing in sync so any JS reading it sees current values
+			if(HolestPayCheckout && HolestPayCheckout.cart && HolestPayCheckout.cart.order_billing){
+				var ob = HolestPayCheckout.cart.order_billing;
+				ob.is_company       = send_data.is_company;
+				ob.company_tax_id   = send_data.company_tax_id;
+				ob.company_reg_id   = send_data.company_reg_id;
+				if(typeof send_data.company !== 'undefined') ob.company = send_data.company;
 			}
-			
-			let send_data = {
-					is_company: is_company,
-					company_tax_id: (is_company === null || is_company) ? (order_billing.company_tax_id || "") : "",
-					company_reg_id: (is_company === null || is_company) ? (order_billing.company_reg_id || "") : ""
-				};
-			
-			if(is_company === 0){
-				send_data.company = '';
-			}	
-			
-			wc.blocksCheckout.extensionCartUpdate({ namespace: 'hpay', data: { 
-			    order_billing:send_data
-			}}).then(d => {
-				if(d && d.extensions && d.extensions.hpay && d.extensions.hpay.cart){
-					HolestPayCheckout.cart = Object.assign(HolestPayCheckout.cart, d.extensions.hpay.cart);
+
+			// Persist via custom AJAX endpoint (works for both classic and block checkout)
+			if(typeof hpay_setCheckoutData === 'function'){
+				hpay_setCheckoutData({ order_billing: send_data });
+			}
+
+			// Block checkout: also push into WC Blocks draft order via extensionCartUpdate
+			if(isBlockCheckout){
+				wc.blocksCheckout.extensionCartUpdate({ namespace: 'hpay', data: {
+					order_billing: send_data
+				}}).then(function(d){
+					if(d && d.extensions && d.extensions.hpay && d.extensions.hpay.cart)
+						HolestPayCheckout.cart = Object.assign(HolestPayCheckout.cart, d.extensions.hpay.cart);
+				});
+			}
+		};
+
+	// Works for both classic and block checkout; debounced — resets on every call so
+	// the API fires only after the user stops typing for 200 ms.
+	const callUpdateCompanyFields = function() {
+		if(__callUpdateCompanyFieldsTimer) clearTimeout(__callUpdateCompanyFieldsTimer);
+		__callUpdateCompanyFieldsTimer = setTimeout(updateCompanyFields, 350);
+	};
+
+		const getHideableContainer = (el) => (
+			el.closest('.wc-block-components-text-input, [data-hpay-injected], p.form-row, .form-row') ||
+			el.parentElement
+		);
+
+		const applyCompanyVisibility = (is_company) => {
+			const fields = HolestPayCheckout.cart && HolestPayCheckout.cart.UI && HolestPayCheckout.cart.UI.checkout_fields;
+			if(!fields) return;
+
+			const getCompanyInput = () =>
+				queryField(fields.company) || document.querySelector("input[name='billing_company']");
+
+			if(_isCompanyIsCompanyField){
+				// Company name IS the is_company indicator — always keep it visible;
+				// only show/hide the extra tax_id / reg_id fields
+				try{ const cmp = getCompanyInput(); if(cmp){ const w = getHideableContainer(cmp); if(w) w.style.display = ''; } }catch(e){}
+				['company_tax_id', 'company_reg_id'].forEach(key => {
+					if(!fields[key]) return;
+					try{
+						const el = queryField(fields[key]);
+						if(el){ const w = getHideableContainer(el); if(w) w.style.display = is_company ? '' : 'none'; }
+						const injectedSel = {company_tax_id:'[data-hpay-tax-id]', company_reg_id:'[data-hpay-reg-id]'}[key];
+						if(injectedSel){ const inj = document.querySelector(injectedSel); if(inj) inj.style.display = is_company ? '' : 'none'; }
+					}catch(e){}
+				});
+			}else{
+				// Separate is_company control (injected checkbox or existing field) —
+				// hide/show company name + extra fields together
+				['company', 'company_tax_id', 'company_reg_id'].forEach(key => {
+					if(!fields[key]) return;
+					try{
+						const el = key === 'company'
+							? getCompanyInput()
+							: queryField(fields[key]);
+						if(el){ const w = getHideableContainer(el); if(w) w.style.display = is_company ? '' : 'none'; }
+						const injectedSel = {company_tax_id:'[data-hpay-tax-id]', company_reg_id:'[data-hpay-reg-id]'}[key];
+						if(injectedSel){ const inj = document.querySelector(injectedSel); if(inj) inj.style.display = is_company ? '' : 'none'; }
+					}catch(e){}
+				});
+			}
+		};
+
+		const createHpayTextInput = (id, label, value, onChange) => {
+			const wrap = document.createElement('div');
+			wrap.className = 'wc-block-components-text-input' + (value ? ' is-active' : '');
+			wrap.dataset.hpayInjected = '1';
+			const input = document.createElement('input');
+			input.type = 'text'; input.id = id; input.value = value; input.autocomplete = 'off';
+			const lbl = document.createElement('label');
+			lbl.htmlFor = id; lbl.textContent = label;
+			wrap.appendChild(input); wrap.appendChild(lbl);
+			input.addEventListener('input', e => { wrap.classList.toggle('is-active', !!e.target.value); onChange(e.target.value); });
+			input.addEventListener('focus', () => wrap.classList.add('is-active'));
+			input.addEventListener('blur', () => { if(!input.value) wrap.classList.remove('is-active'); });
+			return wrap;
+		};
+
+		// Mirror of __set_input_value but for checkbox checked state
+		const hpay_set_checkbox = (inp, checked) => {
+			try{
+				const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'checked').set;
+				nativeSetter.call(inp, checked);
+				const cevent = new Event('change', { bubbles: true });
+				cevent.simulated = true;
+				cevent.target = inp;
+				inp.dispatchEvent(cevent);
+			}catch(rex){
+				inp.checked = checked;
+			}
+		};
+
+		const createHpayCheckbox = (id, labelText, checked, onChange) => {
+			const wrap = document.createElement('div');
+			wrap.className = 'wc-block-components-checkbox';
+			wrap.dataset.hpayInjected = '1';
+
+			const input = document.createElement('input');
+			input.type = 'checkbox'; input.id = id;
+			input.className = 'wc-block-components-checkbox__input';
+
+			// WC Blocks CSS rule: `.wc-block-components-checkbox label { position: relative }`
+			// The mark must be INSIDE the label so it absolutely-positions relative to the
+			// label's top-left (overlaying the input at margin 3px/1px).
+			// Being an immediate sibling of the input *within* the label keeps the
+			// `input:not(:checked) + .mark { display:none }` selector working.
+			var existingMark = document.querySelector('.wc-block-components-checkbox__mark');
+			var mark = existingMark ? existingMark.cloneNode(true) : (function(){
+				var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+				svg.setAttribute('class', 'wc-block-components-checkbox__mark');
+				svg.setAttribute('aria-hidden', 'true');
+				svg.setAttribute('viewBox', '0 0 24 20');
+				var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+				path.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+				svg.appendChild(path);
+				return svg;
+			}());
+
+			// label wraps: [input] [mark (absolute, overlays input)] [text]
+			const lbl = document.createElement('label');
+			lbl.htmlFor = id; lbl.className = 'wc-block-components-checkbox__label';
+			lbl.appendChild(input);
+			lbl.appendChild(mark);
+			lbl.appendChild(document.createTextNode(labelText));
+
+			wrap.appendChild(lbl);
+
+			// Set initial state BEFORE attaching our listener so the dispatched change
+			// event doesn't trigger onChange, but WC Blocks global listeners pick it up
+			hpay_set_checkbox(input, checked);
+			input.addEventListener('change', function(){ onChange(input.checked); });
+			return wrap;
+		};
+
+		// Read the true is_company boolean from any element type:
+		// checkbox → .checked, radio → find :checked sibling, select/text → .value
+		const readIsCompanyElValue = (el) => {
+			if(!el) return false;
+			let v;
+			if(el.type === 'checkbox'){
+				v = el.checked ? '1' : '0';
+			}else if(el.type === 'radio'){
+				const checked = el.name
+					? document.querySelector('input[name="' + el.name + '"]:checked')
+					: (el.checked ? el : null);
+				v = checked ? checked.value : '';
+			}else{
+				v = el.value; // select, text, hidden, etc.
+			}
+			return v === "1" || v === "on" || v === "true" || v === "yes"
+				|| (typeof v === 'string' && v !== '' && v.includes("comp"));
+		};
+
+		const hpayHandled = new WeakSet();
+		let hpayScheduled = false;
+
+		const initCompanyFields = () => {
+			const fields = HolestPayCheckout.cart && HolestPayCheckout.cart.UI && HolestPayCheckout.cart.UI.checkout_fields;
+			if(!fields || !fields.company) return;
+			if(!fields.is_company && !fields.company_tax_id && !fields.company_reg_id) return;
+
+			// Locate company name input; block checkout uses id="billing-company" (hyphen),
+			// classic uses id="billing_company" (underscore) — fall back to name attribute
+			const companyInput = queryField(fields.company) || document.querySelector("input[name='billing_company']");
+			if(!companyInput) return;
+
+			if(!order_billing && HolestPayCheckout.cart.order_billing)
+				order_billing = {...HolestPayCheckout.cart.order_billing};
+			if(!order_billing) return;
+
+			// Detect when is_company selector points to the company field itself
+			// (e.g. is_company_field = "company" in admin settings).
+			// Use querySelectorAll so radio groups are fully captured.
+			let existingIsCompanyEls = [];
+			try{ if(fields.is_company) existingIsCompanyEls = Array.from(document.querySelectorAll(fields.is_company)); }catch(e){}
+			const existingIsCompanyEl = existingIsCompanyEls[0] || null;
+			_isCompanyIsCompanyField = existingIsCompanyEls.some(el => el === companyInput);
+
+			// Read initial state from the live DOM element, not server-side cart data
+			let checked;
+			if(_isCompanyIsCompanyField){
+				checked = !!companyInput.value.trim();
+			}else if(existingIsCompanyEl){
+				checked = readIsCompanyElValue(existingIsCompanyEl);
+			}else{
+				checked = fields.is_company ? !!order_billing.is_company : true;
+			}
+
+			const onIsCompanyChange = (isCompany) => {
+				checked = !!isCompany;
+				order_billing.is_company = isCompany ? 1 : 0;
+				const cmp = queryField(fields.company) || document.querySelector("input[name='billing_company']");
+				if(order_billing.is_company){
+					order_billing.company_tax_id = window.h__company_tax_id || "";
+					order_billing.company_reg_id = window.h__company_reg_id || "";
+					if(cmp) __set_input_value(cmp, window.h__company || "");
+					const taxEl = fields.company_tax_id ? (queryField(fields.company_tax_id) || document.querySelector('[data-hpay-tax-id] input')) : null;
+					const regEl = fields.company_reg_id ? (queryField(fields.company_reg_id) || document.querySelector('[data-hpay-reg-id] input')) : null;
+					if(taxEl) taxEl.value = order_billing.company_tax_id;
+					if(regEl) regEl.value = order_billing.company_reg_id;
+				}else{
+					window.h__company_tax_id = order_billing.company_tax_id || "";
+					window.h__company_reg_id = order_billing.company_reg_id || "";
+					window.h__company = HolestPayCheckout.cart.order_billing.company || "";
+					order_billing.company_tax_id = "";
+					order_billing.company_reg_id = "";
+					if(cmp) __set_input_value(cmp, "");
+				}
+				applyCompanyVisibility(order_billing.is_company);
+				callUpdateCompanyFields();
+				if(isBlockCheckout){
+					const fn = document.getElementById('billing-first_name');
+					if(fn){ const v = fn.value; __set_input_value(fn, v + " "); __set_input_value(fn, v); }
+				}
+			};
+
+			// ── is_company ──
+			if(_isCompanyIsCompanyField){
+				// Company name field doubles as the is_company indicator: presence of text = is_company
+				if(!hpayHandled.has(companyInput)){
+					hpayHandled.add(companyInput);
+					companyInput.addEventListener('input', () => {
+						const newVal = !!companyInput.value.trim();
+						if(newVal !== checked) onIsCompanyChange(newVal);
+					});
+				}
+			}else if(fields.is_company){
+				const unhandledEls = existingIsCompanyEls.filter(el => !hpayHandled.has(el));
+				if(unhandledEls.length > 0){
+					// Attach to every unhandled element — covers radio groups, checkbox, select
+					unhandledEls.forEach(el => {
+						hpayHandled.add(el);
+						el.addEventListener('change', () => onIsCompanyChange(readIsCompanyElValue(el)));
+					});
+				}else if(existingIsCompanyEls.length === 0 && !document.querySelector('[data-hpay-is-company]')){
+					// Inject checkbox before the company field (block checkout)
+					const companyWrap = companyInput.closest('.wc-block-components-text-input') || companyInput.parentElement;
+				if(companyWrap && companyWrap.parentElement){
+					const cbEl = createHpayCheckbox(
+						'hpay-is-company',
+						(HolestPayCheckout.labels && HolestPayCheckout.labels["Ordering as a company?"]) || "Ordering as a company?",
+							checked, onIsCompanyChange
+						);
+						cbEl.dataset.hpayIsCompany = '1';
+						companyWrap.parentElement.insertBefore(cbEl, companyWrap);
+					}
+				}
+			}
+
+			// ── company_tax_id (always after company field) ──
+			if(fields.company_tax_id){
+				const existingTax = queryField(fields.company_tax_id);
+				if(existingTax && !hpayHandled.has(existingTax)){
+					hpayHandled.add(existingTax);
+					existingTax.addEventListener('input', e => { order_billing.company_tax_id = e.target.value; callUpdateCompanyFields(); });
+				}else if(!existingTax && !document.querySelector('[data-hpay-tax-id]')){
+					const companyWrap = companyInput.closest('.wc-block-components-text-input') || companyInput.parentElement;
+					const taxEl = createHpayTextInput(
+						fields.company_tax_id.replace(/^#/, ''),
+						(HolestPayCheckout.labels && HolestPayCheckout.labels["Company Tax ID"]) || "Company Tax ID",
+						order_billing.company_tax_id || "",
+						val => { order_billing.company_tax_id = val; callUpdateCompanyFields(); }
+					);
+					taxEl.dataset.hpayTaxId = '1';
+					companyWrap.insertAdjacentElement('afterend', taxEl);
+				}
+			}
+
+			// ── company_reg_id (after tax_id, or after company field) ──
+			if(fields.company_reg_id){
+				const existingReg = queryField(fields.company_reg_id);
+				if(existingReg && !hpayHandled.has(existingReg)){
+					hpayHandled.add(existingReg);
+					existingReg.addEventListener('input', e => { order_billing.company_reg_id = e.target.value; callUpdateCompanyFields(); });
+				}else if(!existingReg && !document.querySelector('[data-hpay-reg-id]')){
+					const companyWrap = companyInput.closest('.wc-block-components-text-input') || companyInput.parentElement;
+					const anchorEl = document.querySelector('[data-hpay-tax-id]') || companyWrap;
+					const regEl = createHpayTextInput(
+						fields.company_reg_id.replace(/^#/, ''),
+						(HolestPayCheckout.labels && HolestPayCheckout.labels["Company Register ID"]) || "Company Register ID",
+						order_billing.company_reg_id || "",
+						val => { order_billing.company_reg_id = val; callUpdateCompanyFields(); }
+					);
+					regEl.dataset.hpayRegId = '1';
+					anchorEl.insertAdjacentElement('afterend', regEl);
+				}
+			}
+
+			if(fields.is_company) applyCompanyVisibility(checked);
+
+			// Push current order_billing state to WC Blocks session on the first successful
+			// init. Without this, values already in order_billing (from page-load cart data)
+			// would never reach the WC Blocks draft order unless the user manually interacted
+			// with one of our custom fields — mirroring the original React render-based sync.
+			if(order_billing && !_initialSyncDone){
+				_initialSyncDone = true;
+				callUpdateCompanyFields();
+			}
+		};
+
+		// Read the actual current is_company state from whatever source is available
+		const getIsCompanyChecked = () => {
+			const fields = HolestPayCheckout.cart && HolestPayCheckout.cart.UI && HolestPayCheckout.cart.UI.checkout_fields;
+			if(!fields || !fields.is_company) return true;
+			if(_isCompanyIsCompanyField){
+				const cmp = queryField(fields.company) || document.querySelector("input[name='billing_company']");
+				return !!(cmp && cmp.value && cmp.value.trim());
+			}
+			// querySelectorAll handles radio groups — readIsCompanyElValue handles :checked lookup
+			let els = [];
+			try{ els = Array.from(document.querySelectorAll(fields.is_company)); }catch(e){}
+			if(els.length > 0) return readIsCompanyElValue(els[0]);
+			const injected = document.getElementById('hpay-is-company');
+			if(injected) return injected.checked;
+			return order_billing ? !!order_billing.is_company : true;
+		};
+
+		const scheduleInit = () => {
+			if(hpayScheduled) return;
+			hpayScheduled = true;
+			requestAnimationFrame(() => {
+				hpayScheduled = false;
+				try{ initCompanyFields(); }catch(ex){ console.error(ex); }
+				// Always re-enforce visibility on every DOM mutation — catches cases where
+				// WooCommerce JS sets the is_company field value without triggering childList mutations
+				if(HolestPayCheckout.cart && HolestPayCheckout.cart.UI && HolestPayCheckout.cart.UI.checkout_fields && HolestPayCheckout.cart.UI.checkout_fields.is_company){
+					try{ applyCompanyVisibility(getIsCompanyChecked()); }catch(ex){ console.error(ex); }
 				}
 			});
 		};
-		
-		const callUpdateCompanyFields = () => {
-			if(__callUpdateCompanyFields){
-				return;
-			}
-			__callUpdateCompanyFields = setTimeout(updateCompanyFields,450);
-		};
-		
-		const h_company_adapt = function(...args){
-			if(!order_billing && HolestPayCheckout.cart.order_billing)
-				order_billing = {...HolestPayCheckout.cart.order_billing};
-			
-			let no_is_company = false;
-			let no_tax_id = !HolestPayCheckout.cart.UI.checkout_fields.company_tax_id;
-			let no_reg_id = !HolestPayCheckout.cart.UI.checkout_fields.company_reg_id;
-			
-			if(!HolestPayCheckout.cart.UI.checkout_fields.is_company){
-				no_is_company = true;
-				checked = true;
-			}else{
-				checked = order_billing.is_company;
-			}
-			
-			args[1].__hcreated = true;
-			
-			let company_el = React._hpay_createElement(...args);
-			
-			return [
-				...(
-				no_is_company ? [] : [React._hpay_createElement(wc.blocksComponents.CheckboxControl,{label: HolestPayCheckout.labels["Ordering as a company?"] || "Ordering as a company?" , checked: checked, onChange: (e) => {
-					
-					order_billing.is_company = !checked;
-					let cmp_em = document.getElementById('billing-company');
-					
-					if(order_billing.is_company){
-						order_billing.company_tax_id = window.h__company_tax_id || "";
-						order_billing.company_reg_id = window.h__company_reg_id || "";
-						
-						
-						if(cmp_em){
-							__set_input_value(cmp_em,window.h__company || "");
-						}
-						
-					}else{
-						window.h__company_tax_id = order_billing.company_tax_id || "";
-						window.h__company_reg_id = order_billing.company_reg_id || "";
-						window.h__company = HolestPayCheckout.cart.order_billing.company || "";
-						
-						order_billing.company_tax_id = "";
-						order_billing.company_reg_id = "";
-												
-						if(cmp_em){
-							__set_input_value(cmp_em,"");
-						}
-					}
-					
-					callUpdateCompanyFields();
-					
-					let v = document.getElementById('billing-first_name').value;
-					__set_input_value(document.getElementById('billing-first_name'),v + " ");
-					__set_input_value(document.getElementById('billing-first_name'),v);
-					
-				}},"")]),
-				...(checked ? [
-					company_el,
-					...(no_tax_id ? [] : [React._hpay_createElement(args[0],{...args[1], label: HolestPayCheckout.labels["Company Tax ID"] || "Company Tax ID", id: "billing-company_tax_id", value: order_billing.company_tax_id || "", onChange:(e)=>{
-						order_billing.company_tax_id = e;
-						callUpdateCompanyFields();
-					}})]),
-					
-					...(no_reg_id ? [] : [React._hpay_createElement(args[0],{...args[1], label: HolestPayCheckout.labels["Company Register ID"] || "Company Register ID", id: "billing-company_reg_id", value: order_billing.company_reg_id || "", onChange:(e)=>{
-						order_billing.company_reg_id = e;
-						callUpdateCompanyFields();
-					}})]),
-				] : [])
-			];
-		};
-		
-		
-		const h_create_el = function(...args){
-			if(HolestPayCheckout.cart.UI && HolestPayCheckout.cart.UI.checkout_fields && (HolestPayCheckout.cart.UI.checkout_fields.is_company || HolestPayCheckout.cart.UI.checkout_fields.company_tax_id || HolestPayCheckout.cart.UI.checkout_fields.company_reg_id)){
-				try{
-					if(args && args[1] && typeof args[1].label && typeof args[1].label == "string" && !args[1].__hcreated){
-						if(/billing-company/.test(args[1].id)){
-							return h_company_adapt(...args);
-						}
-					}
-				}catch(ex){
-					console.error(ex);
-					//
-				}
-				return React._hpay_createElement(...args);
-			}
-			return React._hpay_createElement(...args);
-		};
-		
-		try{
-			React.createElement = function(...args){
-				try{
-					if(!HolestPayCheckout.cart)
-						return React._hpay_createElement(...args);
-					if(!HolestPayCheckout.cart.order_billing)
-						return React._hpay_createElement(...args);
-					if(!HolestPayCheckout.cart.UI)
-						return React._hpay_createElement(...args);
-				
-					return h_create_el(...args);
-				}catch(ex){
-					console.error(ex);
-					return React._hpay_createElement(...args);
-				}
-			};
-		}catch(ex){
-			console.error(ex);
-		}
-		
+
+		new MutationObserver(scheduleInit).observe(document.body, { childList: true, subtree: true });
+		scheduleInit();
 	}
 	
 	if(document.querySelector("#billing_first_name_field span.required")){

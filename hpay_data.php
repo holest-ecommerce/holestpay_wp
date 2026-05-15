@@ -53,13 +53,37 @@ trait HPay_Core_Data {
 				$data["is_company_field"] =  $this->getSetting("is_company_field","");
 			}
 			
-			if(WC()->checkout){
-				if($data["company_tax_id_field"])
-					$data["company_tax_id"] = hpay_get_woo_checkout_value('billing_' .$data["company_tax_id_field"],true);
-				if($data["company_reg_id_field"])
-					$data["company_reg_id"] = hpay_get_woo_checkout_value('billing_' .$data["company_reg_id_field"],true);
-				if($data["is_company_field"]){
-					$val = hpay_get_woo_checkout_value('billing_' .$data["is_company_field"],true);
+		if(WC()->checkout){
+			if($data["company_tax_id_field"])
+				$data["company_tax_id"] = hpay_get_woo_checkout_value('billing_' .$data["company_tax_id_field"],true);
+			if($data["company_reg_id_field"])
+				$data["company_reg_id"] = hpay_get_woo_checkout_value('billing_' .$data["company_reg_id_field"],true);
+			if($data["is_company_field"]){
+				$val = hpay_get_woo_checkout_value('billing_' .$data["is_company_field"],true);
+				if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos("{$val}","comp") !== false){
+					$data["is_company"] = 1;
+				}else{
+					$data["is_company"] = 0;
+				}
+			}
+		}
+		// Block Checkout (Store API): the extensionCartUpdate callback writes fresh values into
+		// "__blockc_billing_<field>" session keys within the same request, before getHPayCart()
+		// is called to build the response.  Read them unconditionally so they override whatever
+		// WC()->checkout->get_value() returned above (which can miss the in-request session write
+		// when is_checkout() returns false during a REST/Store API call).
+		if(WC()->session){
+			if($data["company_tax_id_field"]){
+				$v = WC()->session->get("__blockc_billing_" . $data["company_tax_id_field"], null);
+				if($v !== null) $data["company_tax_id"] = $v;
+			}
+			if($data["company_reg_id_field"]){
+				$v = WC()->session->get("__blockc_billing_" . $data["company_reg_id_field"], null);
+				if($v !== null) $data["company_reg_id"] = $v;
+			}
+			if($data["is_company_field"]){
+				$val = WC()->session->get("__blockc_billing_" . $data["is_company_field"], null);
+				if($val !== null){
 					if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos("{$val}","comp") !== false){
 						$data["is_company"] = 1;
 					}else{
@@ -67,6 +91,7 @@ trait HPay_Core_Data {
 					}
 				}
 			}
+		}
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);	
 		}
@@ -877,6 +902,13 @@ trait HPay_Core_Data {
 				$shipping_phone = $order->get_meta( '_shipping_phone' );
 			}
 			
+			$created_utc = "";
+			try{
+				$unix_time = $order->get_date_created()->getTimestamp();
+				$created_utc = gmdate('Y-m-d H:i:s', $unix_time);
+			}catch(Throwable $tex){}
+			
+			
 			$pay_request = array(
 				"merchant_site_uid" => esc_attr($this->getSetting("merchant_site_uid","")),
 				"order_uid"         => esc_attr($order->get_order_key()),
@@ -919,7 +951,9 @@ trait HPay_Core_Data {
 					"id"                 => $order->get_id(),
 					"customer_id"        => $order->get_customer_id(),
 					"payment_method_id"  => $order->get_payment_method(),
-					"shipping_method_id" => $shipping_method_id
+					"shipping_method_id" => $shipping_method_id,
+					"status"             => $order->get_status(),
+					"created_utc"        => $created_utc	
 				)
 			);
 			
@@ -1113,6 +1147,12 @@ trait HPay_Core_Data {
 				$shipping_phone = $order->get_meta( '_shipping_phone' );
 			}
 			
+			$created_utc = "";
+			try{
+				$unix_time = $order->get_date_created()->getTimestamp();
+				$created_utc = gmdate('Y-m-d H:i:s', $unix_time);
+			}catch(Throwable $tex){}
+			
 			$pay_request = array(
 				"merchant_site_uid" => esc_attr($this->getSetting("merchant_site_uid","")),
 				"order_uid"         => esc_attr($order->get_order_key()),
@@ -1155,7 +1195,9 @@ trait HPay_Core_Data {
 					"id"                 => $order->get_id(),
 					"customer_id"        => $order->get_customer_id(),
 					"payment_method_id"  => $order->get_payment_method(),
-					"shipping_method_id" => $shipping_method_id
+					"shipping_method_id" => $shipping_method_id,
+					"status"             => $order->get_status(),
+					"created_utc"        => $created_utc 
 				),
 				"order_user_url"   => apply_filters( 'woocommerce_get_return_url', $return_url, $order ),
 				"vault_token_uid"  => $vault_token_uid,

@@ -692,7 +692,7 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 					$order_status = $order->get_status();
 					$new_status   = apply_filters( 'hpay_before_payment_order_status', $order_status , $order ,$this);
 					if($new_status && $new_status != $order_status){
-						$order->update_status($new_status);
+						$order->update_status($new_status,"(hpay) before_payment_order_status");
 					}
 					
 					if(HPay_Core::instance()->getSetting("thank_you_page_payment","")){

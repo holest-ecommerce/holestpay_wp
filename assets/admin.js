@@ -67,6 +67,40 @@ if(typeof jQuery !== 'undefined' ){
 			settings_panel.removeClass("connected connecting checking").addClass("disconnected");
 	}
 	
+	function storageCopy(obj, seen = new WeakSet()) {
+	  if (obj === null || typeof obj !== 'object') {
+		if (typeof obj === 'string') {
+		  const funcRegex = /^\s*(async\s+)?(function\s*\(|(\(.*\)|[\w]+)\s*=>)/;
+		  return funcRegex.test(obj) ? undefined : obj;
+		}
+		return obj;
+	  }
+
+	  if (seen.has(obj)) return undefined;
+	  seen.add(obj);
+
+	  const isArray = Array.isArray(obj);
+	  const copy = isArray ? [] : {};
+
+	  for (const key in obj) {
+		if (Object.prototype.hasOwnProperty.call(obj, key)) {
+		  const value = obj[key];
+
+		  if (typeof value === 'function') continue;
+		  const cleanedValue = storageCopy(value, seen);
+
+		  if (cleanedValue !== undefined) {
+			if (isArray) {
+			  copy.push(cleanedValue);
+			} else {
+			  copy[key] = cleanedValue;
+			}
+		  }
+		}
+	  }
+	  return copy;
+	}
+	
 	function saveHPaySettings(callback, partial, silent){
 		
 		if(partial){
@@ -80,11 +114,11 @@ if(typeof jQuery !== 'undefined' ){
 			},
 			body: JSON.stringify(partial ? {
 					nonce: HolestPayAdmin.nonce,
-					update_settings: HolestPayAdmin.settings
+					update_settings: storageCopy(HolestPayAdmin.settings)
 				} : 
 				{
 					nonce: HolestPayAdmin.nonce,
-					settings: HolestPayAdmin.settings
+					settings: storageCopy(HolestPayAdmin.settings)
 				})
 		}).then(r => r.json()).then(resp => {
 			if(resp.updated){
@@ -106,7 +140,16 @@ if(typeof jQuery !== 'undefined' ){
 			return {error: "Not initalized"};
 		}
 		
-		let POS = HolestPayAdmin.settings[HolestPayAdmin.settings.environment + "POS"];
+		try{
+			await HPayInit();
+		}catch(ex){
+			console.error(ex);
+		}
+		
+		if(!(window.HPay && window.HPay.POS))
+			return {error: "HPay not initalized"};
+		
+		const POS = window.HPay.POS;
 		
 		if(POS.payment && POS.payment.length){
 			POS.payment.forEach(pm => {
