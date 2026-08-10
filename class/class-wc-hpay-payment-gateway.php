@@ -305,20 +305,31 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 		<input type='hidden' id="<?php echo esc_attr($this->id) ?>_payresult" name="<?php echo esc_attr($this->id) ?>_payresult" value="" />
 		<input type='hidden' id="<?php echo esc_attr($this->id) ?>_is_user_input" name="<?php echo esc_attr($this->id) ?>_is_user_input" value="1"  />
 		<?php
+		$usave = false;
+		if($this->getHProp("InstanceFeatures")){
+			$ifeat = $this->getHProp("InstanceFeatures");
+			if(stripos($ifeat,"mit") !== false){
+				$usave = "mit";
+			}else if(stripos($ifeat,"cof") !== false){
+				$usave = "cof";
+			}else if(stripos($ifeat,"usave") !== false){
+				$usave = "usave";
+			}	
+		}
 		
-		if(get_current_user_id() && in_array("tokenization",$this->supports)){
-			
+		if(get_current_user_id() && (in_array("tokenization",$this->supports) || $usave)){
 			$no_tokens = false;
 			if(isset($this->_method_data["No Card Tokenization"])){
 				if($this->_method_data["No Card Tokenization"]){
 					$no_tokens = true;
 				}
 			}
-			
 			if(!$no_tokens){
 				HPay_Core::instance()->displayUserVaults(get_current_user_id(), $this, true, esc_attr__("Use saved payment token vault reference","holestpay"), false, false, null, true);
 			}
 		}
+		
+		
 		?>
 		<div data-hpay-dock-pmethod="<?php echo esc_attr($this->hpay_id);?>" data-hpay-dock-ptokenref-selector="input[id^='hpaypayment-{$pmid}_vault_token_id_']:checked" ></div>
 		<?php
@@ -660,9 +671,15 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 				return;
 			}
 			
+			$is_new_save_card = false;
+			
 			$vault_token_uid = "";
 			if($vault_token_id){
-				if(!ctype_digit("{$vault_token_id}")){
+				
+				if(strtolower($vault_token_id) == "new" || $vault_token_id == "1" || strtolower($vault_token_id) == "true"){
+					$is_new_save_card = true;
+					$vault_token_uid = strtolower($vault_token_id);
+				}else if(!ctype_digit("{$vault_token_id}")){
 					$token = WC_Payment_Token_HPay::has_hpay_vault_token_uid($vault_token_id);
 					if($token){
 						$vault_token_uid = $vault_token_id;
@@ -698,8 +715,12 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 					if(HPay_Core::instance()->getSetting("thank_you_page_payment","")){
 						//$order = hpay_get_order( $order_id );
 						$order->update_meta_data("_hpay_thank_you_page_payment", $this->hpay_id);
-						$order->update_meta_data("_hpay_thank_you_vault_token_id",$vault_token_id);
+						
+						if(!$is_new_save_card)
+							$order->update_meta_data("_hpay_thank_you_vault_token_id",$vault_token_id);
+						
 						$order->save_meta_data();
+						
 						return array(
 							'result'   => 'success',
 							'redirect' => $this->get_return_url( $order ),

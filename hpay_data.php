@@ -702,7 +702,7 @@ trait HPay_Core_Data {
 				$itm = array(
 					"posuid"        => $item->get_code(),
 					"type"          => "coupon",
-					"name"          => __('Coupon','woocommerce') ." -" . $item->get_discount() . " " . hpay_get_wc_order_currency($order),
+					"name"          => __('Coupon code','woocommerce') ." -" . $item->get_discount() . " " . hpay_get_wc_order_currency($order),
 					"sku"           => $item->get_code(),
 					"qty"           => 1,
 					"price"         => 0,

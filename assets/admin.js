@@ -31,8 +31,30 @@ if(typeof jQuery !== 'undefined' ){
 								HolestPayAdmin.settings[environment + "POS"] = client.POS;
 								save = true;
 							}else if(HolestPayAdmin.settings[environment + "POS"].posuts != client.POS.posuts){
+								//
 								HolestPayAdmin.settings[environment + "POS"] = client.POS;
 								save = true;
+								
+								try{
+									const spanel = document.getElementById("hpay_settings_page");
+									if(spanel){
+										const sts = spanel.getAttribute('ts');
+										const whsts = spanel.getAttribute('last_webhook_ts');
+										if(sts && parseInt(sts)){
+											let warn_wh = true;
+											if(whsts && parseInt(whsts) > 0 && Math.abs(parseInt(sts) - parseInt(whsts)) < 86400){
+												warn_wh = false;
+											}
+											if(warn_wh){
+												let w = document.querySelector("#hpay_warn_wh");
+												if(w) 
+													w.style.display = 'block';
+											}
+										}
+									}
+								}catch(whex){
+									console.error(whex);
+								}
 							}
 							
 							if(saveondiff && save){

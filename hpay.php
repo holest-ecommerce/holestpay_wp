@@ -153,7 +153,23 @@ if(!function_exists("hpay_write_log")){
 					@mkdir(HPAY_LOG_DIR,0775,true);
 				}
 				
-				if(!is_string($data)){
+				if($data instanceof Throwable){
+					$trace = array();
+					try{
+						foreach(array_slice($data->getTrace(), 0, 8) as $frame){
+							$trace[] = array(
+								"file" => isset($frame["file"]) ? $frame["file"] : "",
+								"line" => isset($frame["line"]) ? $frame["line"] : "",
+								"function" => (isset($frame["class"]) ? $frame["class"] . (isset($frame["type"]) ? $frame["type"] : "::") : "") . (isset($frame["function"]) ? $frame["function"] : ""),
+							);
+						}
+					}catch(Throwable $mex){}
+					$data = array(
+						"error" => get_class($data) . ": " . $data->getMessage(),
+						"at" => $data->getFile() . ":" . $data->getLine(),
+						"trace" => $trace,
+					);
+				}else if(!is_string($data)){
 					try{
 						if($data){
 							if(method_exists($data,"getMessage")){
@@ -161,9 +177,13 @@ if(!function_exists("hpay_write_log")){
 							}
 						}
 					}catch(Throwable $mex){}
-				}
-				
-				if($log_type == "error" || $log_type == "trace"){
+					
+					if($log_type == "error" || $log_type == "trace"){
+						try{
+							$data = array($data,debug_backtrace(2,5));
+						}catch(Throwable $mex){}
+					}
+				}else if($log_type == "error" || $log_type == "trace"){
 					try{
 						$data = array($data,debug_backtrace(2,5));
 					}catch(Throwable $mex){}
@@ -172,9 +192,24 @@ if(!function_exists("hpay_write_log")){
 				if(!is_string($data)){
 					$data = json_encode($data, JSON_PRETTY_PRINT);
 				}
+				if($log_type == "error"){
+					$data = "[HPAY_ERROR] " . $data;
+				}
+
+				$site_paths = array_unique(array_filter(array(
+					ABSPATH,
+					rtrim(ABSPATH, '/\\'),
+					str_replace('\\', '/', ABSPATH),
+					rtrim(str_replace('\\', '/', ABSPATH), '/'),
+					str_replace('/', '\\', ABSPATH),
+					rtrim(str_replace('/', '\\', ABSPATH), '\\'),
+				)));
+				usort($site_paths, function($a, $b){ return strlen($b) - strlen($a); });
+				$data = str_ireplace($site_paths, '(site folder)', $data);
 				
-				$d = date("Ymd"); 
-				@file_put_contents(HPAY_LOG_DIR . "/{$log_type}{$d}.log.txt","\r\n" . date("Y-m-d H:i:s") .  "\r\n" . $data . "\r\n",FILE_APPEND);
+				$d = date("Ymd");
+				$day_token = substr(hash_hmac('sha256', 'hpay-log-' . $d, wp_salt('auth')), 0, 12);
+				@file_put_contents(HPAY_LOG_DIR . "/{$log_type}{$d}_{$day_token}.log.txt","\r\n" . date("Y-m-d H:i:s") .  "\r\n" . $data . "\r\n",FILE_APPEND);
 				global $__hpay_log_clear;
 				if(!isset($__hpay_log_clear)){
 					$__hpay_log_clear = true;

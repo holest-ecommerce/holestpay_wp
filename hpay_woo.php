@@ -127,6 +127,9 @@ trait HPay_Core_Woo {
 			//FIX NUMI
 			$order = wc_get_order( $order_id );
 			$order->update_meta_data("_hpay_last_refund_ts",time());
+			$order->delete_meta_data("_hpay_charge_after_ts");
+			$order->delete_meta_data("_hpay_charge_tries");
+			$order->delete_meta_data("_hpay_charge_attempt_ts");
 			$order->save_meta_data();
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);
@@ -502,7 +505,7 @@ trait HPay_Core_Woo {
 			if(stripos($hpay_status,"PAID") !== false || stripos($hpay_status,"SUCCESS") !== false){
 				$wc_order_status = $this->getSetting("woo_status_map_paid",""); 
 				$hpay_mapped_status_track = array("woo_status_map_paid",$wc_order_status);
-			}else if(stripos($hpay_status,"RESERVE") !== false){
+			}else if(stripos($hpay_status,"RESERVE") !== false || stripos($hpay_status,"PAYING") !== false){
 				$wc_order_status = $this->getSetting("woo_status_map_reserve",""); 
 				$hpay_mapped_status_track = array("woo_status_map_reserve",$wc_order_status);
 			}else if(stripos($hpay_status,"AWAITING") !== false){
@@ -901,6 +904,36 @@ trait HPay_Core_Woo {
 		return false;
 	}
 	
+	public function wc_isSubsriptionRenewalOrder($order_id_or_order){
+		try{
+			if(function_exists("wcs_order_contains_renewal")){
+				if(wcs_order_contains_renewal($order_id_or_order)){
+					return "wcs";
+				}
+			}
+			
+			if(function_exists("ywsbs_is_an_order_with_subscription")){
+				if($this->getSetting("yith_enable",false)){
+					if(ywsbs_is_an_order_with_subscription($order_id_or_order) == "renew"){
+						return "yith";
+					}
+				}
+			}
+			
+			if(function_exists('wps_create_subscription')){
+				$order = is_numeric($order_id_or_order) ? hpay_get_order($order_id_or_order) :  $order_id_or_order;
+				if($order){
+					if ($order->get_meta('wps_sfw_subscription') || $order->get_meta('wps_sfw_renewal_order')) {
+						return "wps_sfw";
+					}
+				}
+			}
+		}catch(Throwable $ex){
+			hpay_write_log("error",$ex);
+		}
+		return false;
+	}
+	
 	public function wc_isSubsription($order_id_or_order){
 		try{
 			if(function_exists("wcs_order_contains_subscription")){
@@ -938,35 +971,10 @@ trait HPay_Core_Woo {
 		}catch(Throwable $ex){
 			hpay_write_log("error",$ex);
 		}
-		return false;
-	}
-	
-	public function wc_isSubsriptionRenewalOrder($order_id_or_order){
-		try{
-			if(function_exists("wcs_order_contains_renewal")){
-				if(wcs_order_contains_renewal($order_id_or_order)){
-					return "wcs";
-				}
-			}
-			
-			if(function_exists("ywsbs_is_an_order_with_subscription")){
-				if($this->getSetting("yith_enable",false)){
-					if(ywsbs_is_an_order_with_subscription($order_id_or_order) == "renew"){
-						return "yith";
-					}
-				}
-			}
-			
-			if(function_exists('wps_create_subscription')){
-				$order = is_numeric($order_id_or_order) ? hpay_get_order($order_id_or_order) :  $order_id_or_order;
-				if($order){
-					if ($order->get_meta('wps_sfw_subscription') || $order->get_meta('wps_sfw_renewal_order')) {
-						return "wps_sfw";
-					}
-				}
-			}
-		}catch(Throwable $ex){
-			hpay_write_log("error",$ex);
+		
+		$is_renewal = $this->wc_isSubsriptionRenewalOrder($order_id_or_order);
+		if($is_renewal){
+			return $is_renewal;
 		}
 		return false;
 	}
@@ -1081,6 +1089,10 @@ trait HPay_Core_Woo {
 						$order = hpay_get_order($charge->order_id);
 						if(!$order)
 							continue;
+
+						if($order->get_meta("_hpay_autocharged")){
+							continue;
+						}
 						
 						$hpay_charge_after_ts = intval($order->get_meta("_hpay_charge_after_ts"));
 						if($hpay_charge_after_ts){
@@ -1108,28 +1120,17 @@ trait HPay_Core_Woo {
 							$order->save_meta_data();
 							
 							$hpay_payment_status = HPay_Core::instance()->orderHpayPaymentStatus($order);
-							if(!in_array($hpay_payment_status,array("PAID","RESERVED","SUCCESS","AWAITING","REFUNDED","PARTIALLY-REFUNDED","VOID"))){
+							if(!in_array($hpay_payment_status,array("PAID","PAYING","RESERVED","SUCCESS","AWAITING","REFUNDED","PARTIALLY-REFUNDED","VOID","REFUND"))){
 								$hmethod = HPay_Core::payment_method_instance($charge->payment_method_id);
 								if($hmethod){
 									if($hmethod->supportsOperation("charge")){
 										if($this->getSetting("no_auto_charges","") != 1){
 											ob_start();
-											$charge_res = do_action("hpay_do_charge_order", $charge->order_id, null, $hmethod);
-											
-											$is_success = false;
-											if($charge_res){
-												if(isset($charge_res["status"])){
-													if(stripos($charge_res["status"],"SUCCESS") !== false
-														||
-												       stripos($charge_res["status"],"PAID") !== false	
-													    ||
-												       stripos($charge_res["status"],"RESERVED") !== false){
-														   $is_success = true;
-													   }	
-												}
-											}
-											
-											if(!$is_success){
+											do_action("hpay_do_charge_order", $charge->order_id, null, $hmethod);
+											$dump = ob_get_clean();
+
+											$order = hpay_get_order($charge->order_id, true);
+											if($order && !$order->get_meta("_hpay_autocharged")){
 												if($charge_try == 1){
 													$order->update_meta_data("_hpay_charge_after_ts",time() + 3600);
 												}else if($charge_try == 2){
@@ -1139,8 +1140,6 @@ trait HPay_Core_Woo {
 												}
 												$order->save_meta_data();
 											}
-											
-											$dump = ob_get_clean();
 										}
 									}
 								}
@@ -1264,6 +1263,27 @@ trait HPay_Core_Woo {
 									$country = WC()->customer->get_shipping_country();
 									if(!$country){
 										$country = WC()->customer->get_billing_country();
+									}
+									
+									try{
+										if($hmethod->getHProp("Companies / Individuals")){
+											$companies_individuals = $hmethod->getHProp("Companies / Individuals");
+											if($companies_individuals){
+												if($companies_individuals == "companies"){
+													if(!WC()->customer->get_billing_company()){
+														unset($gateways[$paymentid]);
+														continue;
+													}
+												}else if($companies_individuals == "individuals"){
+													if(WC()->customer->get_billing_company()){
+														unset($gateways[$paymentid]);
+														continue;
+													}
+												}
+											}
+										}
+									}catch(Throwable $cex){
+										hpay_write_log("error",$cex);
 									}
 									
 									if($hmethod->getHProp("Only For Countries")){

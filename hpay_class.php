@@ -79,6 +79,7 @@ class HPay_Core {
 		add_action( 'init',  array( $this, 'onInit'), 999);
 		
 		add_filter( 'woocommerce_cancel_unpaid_order', array( $this, 'maybe_prevent_hold_stock_cancel'), 99, 2 );
+		add_filter( 'woocommerce_payment_complete_order_status', array( $this, 'woocommerce_payment_complete_order_status'), 99, 3 );
 		
 		try{
 			$this->upgrade_setup();
@@ -140,6 +141,11 @@ class HPay_Core {
 		
 		try{
 			$this->maintainCleanLocks();
+		}catch(Throwable $ex){
+			//
+		}
+		try{
+			$this->maintainSettings();
 		}catch(Throwable $ex){
 			//
 		}
@@ -685,6 +691,8 @@ class HPay_Core {
 						$transaction_pay_status =  "PAID";
 					}else if(stripos($resp["status"],"PAID") !== false){
 						$transaction_pay_status =  "PAID";
+					}else if(stripos($resp["status"],"PAYING") !== false){
+						$transaction_pay_status =  "PAYING";
 					}else if(stripos($resp["status"],"RESERVED") !== false){
 						$transaction_pay_status =  "RESERVED";
 					}else if(stripos($resp["status"],"AWAITING") !== false){
@@ -695,6 +703,8 @@ class HPay_Core {
 						$transaction_pay_status =  "PARTIALLY-REFUNDED";
 					}else if(stripos($resp["status"],"REFUND") !== false){
 						$transaction_pay_status =  "REFUNDED";
+					}else{
+						$transaction_pay_status = $this->extractPaymentStatus($resp["status"]);
 					}
 				}
 				
@@ -825,15 +835,7 @@ class HPay_Core {
 								//	
 							}
 						}else if(strpos($charge_res["status"],"RESERVED") !== false || strpos($charge_res["status"],"AWAITING") !== false){
-							if($renewal == "wsc"){
-								
-							}else if($renewal == "yith"){
-								//	
-							}else if($renewal == "wps_sfw"){
-								//	
-							}else{
-								//	
-							}
+							//
 						}else if(strpos($charge_res["status"],"FAILED") !== false || strpos($charge_res["status"],"ERROR") !== false || strpos($charge_res["status"],"CANCELED") !== false){
 							if($renewal == "wsc"){
 								WC_Subscriptions_Manager::process_subscription_payment_failure_on_order(hpay_get_order($charge->order_id));
@@ -1287,97 +1289,7 @@ class HPay_Core {
 					$order->add_order_note( __('HPAY charge response rejected due incorrect verification string!', 'holestpay'));
 					return false;	
 				}else{
-					/*
-					$already_received = false;
-					
-					if($this->resultAlreadyReceived($result)){
-						$already_received = true;
-					}
-					
-					$hpay_responses = HPay_Core::instance()->getHPayPayResponses($order);
-					
-					$is_duplicate_response = false;
-					if(isset($result["transaction_uid"])){
-						foreach($hpay_responses as $prev_result){
-							if(isset($prev_result["transaction_uid"])){
-								if($prev_result["transaction_uid"] == $result["transaction_uid"]){
-									$is_duplicate_response = true;
-									break;
-								}
-							}
-						}
-					}else{
-						$is_duplicate_response = false;
-						$result["transaction_uid"] = "";
-						foreach($hpay_responses as $ind => $prev_resp){
-							if(isset($prev_resp["transaction_uid"])){
-								if($prev_resp["transaction_uid"]){
-									continue;
-								}
-							}
-							unset($hpay_responses[$ind]);
-						}
-					}
-					
-					if(!$is_duplicate_response){
-						$hpay_responses[] = $result;
-						HPay_Core::instance()->setHPayPayResponses($order, $hpay_responses, false);
-						$this->acceptResponseFiscalAndShipping($order_id,$result);
-						
-						if($already_received){
-							return $result;
-						}
-						
-						$return_result = true;
-						if(strpos($result["status"],"SUCCESS") !== false || strpos($result["status"],"PAID") !== false || strpos($result["status"],"RESERVED") !== false || strpos($result["status"], "AWAITING") !== false){
-							if(stripos($order->get_payment_method(),"hpaypayment-") !== false){
-								$order->add_order_note( __('HPAY charge completed', 'holestpay') . " " . $result["transaction_uid"] );
-								$wc_ostat = $this->shouldSetStatus($result, $order);
-								if($wc_ostat){
-									if(!$this->wc_order_has_status_immediate($order->get_id(), $wc_ostat))
-										$this->setOrderStatus($order,$wc_ostat);	
-								}
-								if(strpos($result["status"],"SUCCESS") !== false || strpos($result["status"],"PAID") !== false){
-									//payment_complete must be called after status set!!!
-									$order->payment_complete($result["transaction_uid"]);
-								}else if (strpos($result["status"],"RESERVED") !== false || strpos($result["status"], "AWAITING") !== false){
-									//
-								}
-							}else{
-								$wc_ostat = $this->shouldSetStatusBecauseOfDelivery($result, $order);
-								if($wc_ostat){
-									if(!$order->has_status($wc_ostat) && !$this->wc_order_has_status_immediate($order->get_id(), $wc_ostat))
-										$this->setOrderStatus($order,$wc_ostat);	
-								}
-							}
-						}else{
-							if(stripos($order->get_payment_method(),"hpaypayment-") !== false){
-								if(!$this->wc_order_has_status_immediate($order->get_id(), 'failed')){
-									$this->setOrderStatus($order,'failed', __( 'HPAY charge failed', 'holestpay' ) . " " . $result["transaction_uid"]);
-								}
-							}
-						}
-					}else{
-						if(!$order->is_paid() && (strpos($result["status"],"SUCCESS") !== false || strpos($result["status"],"PAID") !== false)){
-							if(stripos($order->get_payment_method(),"hpaypayment-") !== false){
-								$wc_ostat = $this->shouldSetStatus($result, $order);
-								if($wc_ostat){
-									if(!$this->wc_order_has_status_immediate($order->get_id(), $wc_ostat))
-										$this->setOrderStatus($order,$wc_ostat);	
-								}
-								//payment_complete must be called after status set!!!
-								$order->payment_complete($result["transaction_uid"]);
-							}else{
-								$wc_ostat = $this->shouldSetStatusBecauseOfDelivery($result, $order);
-								if($wc_ostat){
-									if(!$order->has_status($wc_ostat) && !$this->wc_order_has_status_immediate($order->get_id(), $wc_ostat))
-										$this->setOrderStatus($order,$wc_ostat);	
-								}
-							}
-						}
-					}
-					$order->save();
-					*/
+					//
 				}
 				return $result;
 			}
@@ -1391,62 +1303,7 @@ class HPay_Core {
 	}
 	
 	public function destroyVaultToken($vault_token_uid, $blocking = false){
-		/*
-		if(!$vault_token_uid)
-			return false;
-		
-		if(strlen($vault_token_uid) < 10)
-			return false;
-		
-		if(!$this->getSetting("environment"))
-			return false;
-		
-		if(!$this->getSetting("merchant_site_uid"))
-			return false;
-		
-		$call_url = "";
-		if($this->getSetting("environment", null) == "sandbox"){
-			$call_url = HPAY_SANDBOX_URL;
-		}else{
-			$call_url = HPAY_PRODUCTION_URL;
-		}
-		
-		$call_url .= "/clientpay/destroyvault";
-		try{
-			$response = wp_remote_post( $call_url, array(
-					'method'      => 'POST',
-					'timeout'     => 29,
-					'redirection' => 5,
-					'httpversion' => '1.0',
-					'blocking'    => $blocking,
-					'headers'     => array(),
-					'body'        => array(
-						"request_data" => array(
-							"merchant_site_uid" => $this->getSetting("merchant_site_uid"),
-							"vault_token_uid"   => $vault_token_uid,
-							"verificationhash"  => $this->payRequestSignatureHash("","","", "", "", $vault_token_uid,"")
-						)
-					)
-				)
-			);
-			
-			if(!$blocking)
-				return true;
-			
-			if ( is_wp_error( $response ) ) {
-				throw new Exception(wp_remote_retrieve_response_code($response) . ": " . $response->get_error_message());
-			} else {
-				$resp = wp_remote_retrieve_body( $response );
-				if(!$this->verifyResponse($resp)){
-					throw new Exception(__("Destroy vault token response rejected - signature could not be verified!","holestpay"));	
-				}
-				return resp;
-			}
-			
-		}catch(Throwable $ex){
-			throw $ex;
-		}
-		*/
+		//
 	}
 	
 	public function getPOSSetting($name, $default = null, $environment = null){
@@ -1539,6 +1396,51 @@ class HPay_Core {
 		}
 		
 		return "";
+	}
+	
+	public function woocommerce_payment_complete_order_status($payment_complete_status, $order_id, $order){
+		try{
+			if(!$order && is_numeric($order_id)){
+				$order = hpay_get_order($order_id);
+			}
+			if($order && stripos($order->get_payment_method(),"hpaypayment-") !== false){
+				$hpay_status = $order->get_meta("_hpay_status");
+				if($hpay_status){
+					$wc_order_status = null;
+					if(stripos($hpay_status,"PAID") !== false || stripos($hpay_status,"SUCCESS") !== false){
+						$wc_order_status = $this->getSetting("woo_status_map_paid",""); 
+					}else if(stripos($hpay_status,"RESERVE") !== false || stripos($hpay_status,"PAYING") !== false){
+						$wc_order_status = $this->getSetting("woo_status_map_reserve",""); 
+					}else if(stripos($hpay_status,"AWAITING") !== false || stripos($hpay_status,"OBLIGARED") !== false){
+						$wc_order_status = $this->getSetting("woo_status_map_awaiting",""); 
+					}else if(stripos($hpay_status,"VOID") !== false){
+						$wc_order_status = $this->getSetting("woo_status_map_void",""); 
+					}else if(stripos($hpay_status,"PARTIALLY-REFUNDED") !== false){
+						$wc_order_status = $this->getSetting("woo_status_map_partial_refund",""); 
+					}else if(stripos($hpay_status,"REFUND") !== false){
+						$wc_order_status = $this->getSetting("woo_status_map_refund",""); 
+					}
+					
+					if(stripos($hpay_status,"@DELIVERED") !== false){
+						if(
+							stripos($hpay_status,"@DELIVERY") === false && stripos($hpay_status,"@SUBMITED") === false
+							&& stripos($hpay_status,"@READY") === false && stripos($hpay_status,"@PREPARING") === false
+						){
+							if($this->getSetting("woo_status_map_shipped","")){
+								$wc_order_status = $this->getSetting("woo_status_map_shipped",""); 
+							}
+						}
+					}
+					
+					if($wc_order_status){
+						return $wc_order_status;
+					}
+				}
+			}
+		}catch(Throwable $ex){
+			hpay_write_log("error", $ex);
+		}
+		return $payment_complete_status;
 	}
 	
 	public function acceptResult($order, $result, $pmethod_id = null, $is_webhook = false){
@@ -1662,7 +1564,7 @@ class HPay_Core {
 				}
 				
 				$return_result = true;
-				if(strpos($result["status"],"SUCCESS") !== false || strpos($result["status"],"PAID") !== false || strpos($result["status"],"RESERVED") !== false || strpos($result["status"], "AWAITING") !== false){
+				if(strpos($result["status"],"SUCCESS") !== false || strpos($result["status"],"PAID") !== false || strpos($result["status"],"PAYING") !== false || strpos($result["status"],"RESERVED") !== false || strpos($result["status"], "AWAITING") !== false){
 					
 					if(!$is_webhook){
 						hpay_write_log($hpay_log_file, "\r\n<!-- acceptResult PAID/SUCCESS/RESERVED/AWAITING -->\r\n", FILE_APPEND);
@@ -1709,8 +1611,6 @@ class HPay_Core {
 							if(strpos($result["status"],"SUCCESS") !== false || strpos($result["status"],"PAID") !== false){
 								//payment_complete must be called after status set!!!
 								$order->payment_complete($result["transaction_uid"]);
-							}else if (strpos($result["status"],"RESERVED") !== false || strpos($result["status"],"AWAITING") !== false){
-								//
 							}
 						}else{
 							if(!$is_webhook){
@@ -2114,6 +2014,63 @@ class HPay_Core {
 			global $wpdb;
 			$ts = time();
 			$wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}options WHERE (option_name LIKE '%hpayorderlock%' OR option_name LIKE '%hpayresultrec%') AND option_value < %d", $ts - 900));//15min
+
+			// Expired hpayresp_* transients (value + timeout pairs); WP only drops them on read.
+			$wpdb->query($wpdb->prepare(
+				"DELETE a, b FROM {$wpdb->options} a INNER JOIN {$wpdb->options} b
+					ON b.option_name = CONCAT('_transient_timeout_', SUBSTRING(a.option_name, 12))
+					WHERE a.option_name LIKE %s AND b.option_value < %d",
+				$wpdb->esc_like('_transient_hpayresp_') . '%',
+				$ts
+			));
+			
+			$wpdb->query($wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",
+				$wpdb->esc_like('_transient_timeout_hpayresp_') . '%',
+				$ts
+			));
+
+		}catch(Throwable $ex){
+			hpay_write_log("error", $ex);
+		}
+	}
+
+	public function maintainSettings(){
+		try{
+			global $wpdb;
+
+			$option_names = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like('woocommerce_hpayshipping-') . '%' . $wpdb->esc_like('_settings')
+				)
+			);
+			if(!is_array($option_names) || empty($option_names) || $wpdb->last_error){
+				return;
+			}
+
+			$zone_methods_table = $wpdb->prefix . 'woocommerce_shipping_zone_methods';
+			$table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $zone_methods_table));
+			if($table_exists !== $zone_methods_table || $wpdb->last_error){
+				return;
+			}
+
+			$wpdb->last_error = '';
+			$active_instance_ids = $wpdb->get_col("SELECT instance_id FROM {$zone_methods_table}");
+			if(!is_array($active_instance_ids) || $wpdb->last_error){
+				return;
+			}
+			$active_instance_ids = array_map('intval', $active_instance_ids);
+
+			foreach($option_names as $option_name){
+				if(!preg_match('/^woocommerce_(hpayshipping-.+)_(\d+)_settings$/', $option_name, $m)){
+					continue;
+				}
+				$instance_id = intval($m[2]);
+				if($instance_id && !in_array($instance_id, $active_instance_ids, true)){
+					delete_option($option_name);
+				}
+			}
 		}catch(Throwable $ex){
 			hpay_write_log("error", $ex);
 		}
@@ -2138,7 +2095,7 @@ class HPay_Core {
 			}
 			
 			if(isset($resp["result"])){
-				if(is_string($resp["result"])){
+				if(!is_string($resp["result"])){
 					$r = $resp["result"];
 					foreach($resp["result"] as $prop => $val){
 						if($val && !isset($resp[$prop]))
@@ -2737,7 +2694,7 @@ class HPay_Core {
 								}
 							}
 						}
-					}else if(strpos($resp["status"],"PAYMENT:RESERVED") !== false || strpos($resp["status"],"PAYMENT:AWAITING") !== false){
+					}else if(strpos($resp["status"],"PAYMENT:RESERVED") !== false || strpos($resp["status"],"PAYMENT:PAYING") !== false || strpos($resp["status"],"PAYMENT:AWAITING") !== false){
 						
 						if(stripos($order->get_payment_method(),"hpaypayment-") !== false){
 							$wc_ostat = $this->shouldSetStatus($resp, $order);
@@ -2761,12 +2718,20 @@ class HPay_Core {
 				}
 			}else{
 				$hpay_doing_order_update = false;
-				return array(
+				$data = array(
 						'success' => false,
-						'message' => __('UNVERIFIED_RESULT','holestpay'),
-						"order_id"          => $order->get_id(),
-						"order_site_status" => $this->wc_order_status_immediate($order->get_id())
+						'message' => __('UNVERIFIED_RESULT','holestpay')
 					);
+				if(!$order && isset($resp["order_uid"])){
+					$order_id = wc_get_order_id_by_order_key($resp["order_uid"]);
+					if($order_id)
+						$order = hpay_get_order($order_id);
+				}
+				if($order){
+					$data["order_id"]          = $order->get_id();
+					$data["order_site_status"] = $this->wc_order_status_immediate($order->get_id());
+				}
+				return $data;
 			}
 			
 			$hpay_doing_order_update = false;	
@@ -2788,7 +2753,6 @@ class HPay_Core {
 			return $result;
 		}catch(Throwable $ex){
 			hpay_write_log("error", $ex);
-			$hpay_doing_order_update = false;
 			$data = array(
 				'success'   => false,
 				'message'   => __('ERROR_EXCEPTION','holestpay'),
@@ -2801,14 +2765,41 @@ class HPay_Core {
 			}
 			
 			return $data;
+		}finally{
+			$hpay_doing_order_update = false;
 		}
 	}
 	
 	public function webhookHandler(){
 		try{
 			
+			$data = file_get_contents('php://input');
+			if(!$data && isset($_GET["wh_data_handle"])){
+				$call_url = "";
+				if($this->getSetting("environment", null) == "sandbox"){
+					$call_url = HPAY_SANDBOX_URL;
+				}else{
+					$call_url = HPAY_PRODUCTION_URL;
+				}
+				$call_url .= "/clientpay/webhookdata/" . $_GET["wh_data_handle"];
+				$response = wp_remote_get( $call_url );
+				if ( is_wp_error( $response ) ) {
+					$err = $response->get_error_message();
+					hpay_write_log("error",$err);
+					wp_send_json(array("error" => "ERROR: " . $err , "error_code" => 500), 500);
+					return false;
+				}
+				$body = wp_remote_retrieve_body( $response );
+				$data = json_decode( $body, true );
+			}else if(!$data && isset($_GET["wh_data"])){
+				$data = json_decode($_GET["wh_data"], true);
+				if(!$data){
+					$data = json_decode(stripslashes($_GET["wh_data"]),true);
+				}
+			}else{
+				$data = json_decode($data, true);
+			}
 			
-			$data = json_decode( file_get_contents('php://input'), true);
 			if($data){
 				
 				global $hpay_log_file;
@@ -2837,6 +2828,9 @@ class HPay_Core {
 				}
 				
 				if(isset($_GET["topic"])){
+					
+					update_option("_last_hpay_webhook_ts",time(),true);
+					
 					if($_GET["topic"] == "payresult"){
 						if(isset($data["order_uid"])){
 							
@@ -3034,124 +3028,5 @@ class HPay_Core {
 				<?php
 			}
 		}
-
-		/*
-
-
-		$footer_template = $this->getSetting("footer_template","");
-		
-		if($footer_template){
-			$source_dir = __DIR__ ."/assets/footer_branding";
-			$source_url = HPAY_PLUGIN_URL . "/assets/footer_branding";
-			
-			if(get_option("hpay_footer_template","-") != $footer_template){
-				if(!file_exists(WP_CONTENT_DIR . "/uploads/hpay-assets/footer_branding")){
-					@mkdir(WP_CONTENT_DIR . "/uploads/hpay-assets/footer_branding",0775,true);
-				}
-				if(file_exists(WP_CONTENT_DIR . "/uploads/hpay-assets/footer_branding")){
-					try{
-						require_once(__DIR__ . '/../../../wp-admin/includes/file.php');
-						WP_Filesystem();
-						if(true === copy_dir(__DIR__ ."/assets/footer_branding/{$footer_template}", WP_CONTENT_DIR . "/uploads/hpay-assets/footer_branding/{$footer_template}")){
-							$source_dir = WP_CONTENT_DIR . "/uploads/hpay-assets/footer_branding";
-							$source_url = content_url("/uploads/hpay-assets/footer_branding");
-						}	
-					}catch(Throwable $ex){}
-				}
-				update_option("hpay_footer_template",$footer_template, true);
-			}else{
-				if(file_exists(WP_CONTENT_DIR . "/uploads/hpay-assets/footer_branding/{$footer_template}")){
-					$source_dir = WP_CONTENT_DIR . "/uploads/hpay-assets/footer_branding";
-					$source_url = content_url("/uploads/hpay-assets/footer_branding");
-				}
-			}
-			
-			if(file_exists("{$source_dir}/{$footer_template}")){
-				
-				?>
-				<div class="hpay_footer_branding" style='display:flex;justify-content:center;padding:4px 0;'>
-					<div class="hpay-footer-branding-cards" style='display:flex'>
-						<?php 
-						echo implode(" ",array_map(function($img_path) use($footer_template, $source_url ){
-							$imgname = basename( $img_path );
-							if(stripos($imgname,"_") === 0)
-								return "";
-							$img_url = "{$source_url}/{$footer_template}/cards/" . $imgname; 
-							return "<img style='height:30px;' src='{$img_url}' alt='{$imgname}' />";
-						}, glob("{$source_dir}/{$footer_template}/cards/*.{jpg,png,gif,jgeg,svg}" ,GLOB_BRACE)));
-						?>
-					</div>
-					<div style='padding: 0 25px;'>&nbsp;</div>
-					<div class="hpay-footer-branding-bank" style='display:flex'>
-						<?php
-							$banks = glob("{$source_dir}/{$footer_template}/bank/*");
-							foreach($banks as $bank_path){
-								if(is_dir($bank_path)){
-									$bank = basename($bank_path);
-									
-									if(stripos($bank,"_") === 0)
-										continue;
-								
-									$bimgs = glob("{$source_dir}/{$footer_template}/bank/{$bank}/*.{jpg,png,gif,jgeg,svg}" ,GLOB_BRACE);
-									if(!empty($bimgs)){
-										
-										foreach($bimgs as $bimg){
-											if(strpos(basename($bimg),"_") === 0){
-												continue;
-											}
-											
-											$bimg = "{$source_url}/{$footer_template}/bank/{$bank}/" . basename($bimg);
-											$link = "";
-											if(file_exists("{$source_dir}/{$footer_template}/bank/{$bank}/link.txt")){
-												$link = trim(file_get_contents("{$source_dir}/{$footer_template}/bank/{$bank}/link.txt"));
-											}
-											echo "<a style='padding:0 5px;' href='{$link}' target='_blank' ><img style='height:32px;' src='{$bimg}' /></a>";
-										}
-									}
-								}
-							}
-						?>
-					</div>
-					<div style='padding: 0 10px;'>&nbsp;</div>
-					<div class="hpay-footer-branding-3ds" style='display:flex'>
-						<?php
-						echo implode(" ",array_map(function($path) use($footer_template, $source_url, $source_dir){
-							if(is_dir($path)){
-								$s3ds_method = basename($path);
-								
-								if(stripos($s3ds_method,"_") === 0)
-									return "";
-								
-								$s3ds_imgs = glob("{$source_dir}/{$footer_template}/s3ds/{$s3ds_method}/*.{jpg,png,gif,jgeg,svg}" ,GLOB_BRACE);
-								if(!empty($s3ds_imgs)){
-									$out = "";
-									foreach($s3ds_imgs as $s3ds_img){
-										
-										if(strpos(basename($s3ds_img),"_") === 0){
-											continue;
-										}
-										
-										$s3ds_img = "{$source_url}/{$footer_template}/s3ds/{$s3ds_method}/" . basename($s3ds_img);
-										$link = "";
-										if(file_exists($path . "/link.txt")){
-											$link = trim(file_get_contents($path . "/link.txt"));
-										}
-										$out .= "<a href='{$link}' target='_blank' ><img style='height:32px;' src='{$s3ds_img}' /></a> ";
-									}
-									return $out;
-								}
-							}else{
-								return "";
-							}
-						}, glob("{$source_dir}/{$footer_template}/s3ds/*" ,GLOB_BRACE)));
-						?>
-					</div>
-				</div>
-				<?php
-			}
-		}
-	   */
-
-
 	}
 };

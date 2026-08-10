@@ -15,8 +15,22 @@ trait HPay_Core_Checkout{
 		if(!$customer_user_id)
 			return;
 		
+		$csave = false;
+		if($hpaymethod && !$hpaymethod->getHProp("HPCardPay") && $hpaymethod->getHProp("InstanceFeatures")){
+			$ifeat = $hpaymethod->getHProp("InstanceFeatures");
+			if(stripos($ifeat,"mit") !== false){
+				$csave = "mit";
+			}else if(stripos($ifeat,"cof") !== false){
+				$csave = "cof";
+			}else if(stripos($ifeat,"usave") !== false){
+				$csave = "usave";
+			}	
+		}
+		
 		$tokens = WC_Payment_Token_HPay::get_hpay_tokens($customer_user_id, $hpaymethod);
-		if(!empty($tokens)){
+		if(!empty($tokens) || $csave){
+			if(empty($tokens)) $tokens = array();
+			
 			if($title){
 				?>
 				<h5 class='hpay-vault-tokens-title'><?php echo esc_attr($title); ?>:</h5>
@@ -68,9 +82,34 @@ trait HPay_Core_Checkout{
 					
 					<?php
 					if($with_other_option){
+						$save_required = "";
+						try{
+							if($csave != "usave"){
+								if(HPay_Core::instance()->getSetting("always_require_vault","")){
+									$save_required = "required";
+								}else if(HPay_Core::instance()->wc_cartHasSubsription()){
+									$save_required = "required";
+								}
+							}
+						}catch(Throwable $tex){
+							hpay_write_log("error",$tex);
+						}
+						
 						$default_chk = !$default_selected ? " checked='checked' " : "";
-						echo "<li><input id='" . esc_attr($name_prefix) . "_vault_token_id_null' {$default_chk} type='radio' value='' name='" . esc_attr($name_prefix) . "_vault_token_id'/> <label for='" . esc_attr($name_prefix) . "_vault_token_id_null' >"; 
-						echo esc_attr(__("Use other ...","holestpay"));
+						echo "<li><input " . ($save_required ? " readonly='readonly' " : "") ." id='" . esc_attr($name_prefix) . "_vault_token_id_null' {$default_chk} type='". ((empty($tokens) && !$save_required)? "checkbox": "radio") ."' value='" . ($csave == "usave" ? "new" : "") . "' name='" . esc_attr($name_prefix) . "_vault_token_id'/> <label for='" . esc_attr($name_prefix) . "_vault_token_id_null' >"; 
+						if(empty($tokens)){
+							if($save_required){
+								echo esc_attr(__("This payment is a part of payments arrangement.","holestpay"));
+							}else{
+								if($csave == "usave"){
+									echo esc_attr(__("Save card token for faster checkout","holestpay"));	
+								}else{
+									echo esc_attr(__("Save card token for future payments","holestpay"));	
+								}
+							}
+						}else{
+							echo esc_attr(__("Use other ...","holestpay"));
+						}
 						echo "</label></li>";
 					}
 					?>
@@ -81,6 +120,9 @@ trait HPay_Core_Checkout{
 	}
 	
 	public function dispayOrderInfo($order_id, $data, $transaction_pay_status = null, $hmethod = null, $display_layout = null){
+		
+		global $hpay_mail_content_capture_on;
+		
 		$method_id = "";
 		if($hmethod){
 			$method_id = $hmethod->id;
@@ -95,6 +137,7 @@ trait HPay_Core_Checkout{
 		$show_payment  = true;
 		$show_fiscal   = true;
 		$show_shipping = true;
+		$show_integr   = true;
 		
 		if($display_layout){
 			if(is_string($display_layout)){
@@ -129,6 +172,8 @@ trait HPay_Core_Checkout{
 				echo "<h4 class='hpay-user-transaction-info pay-outcome-" . ($transaction_pay_status === false ? "failed" : ( $transaction_pay_status === true ? "success" : "pend")) ."'>";
 				if(stripos($transaction_pay_status, "PAID") !== false){
 					echo esc_attr__("Payment successful","holestpay");	
+				}else if(stripos($transaction_pay_status, "PAYING") !== false){
+					echo esc_attr__("Payments started","holestpay");	
 				}else if(stripos($transaction_pay_status, "RESERVED") !== false){
 					echo esc_attr__("Payment successful, pending amount capture","holestpay");	
 				}else if(stripos($transaction_pay_status, "AWAITING") !== false){
@@ -139,12 +184,12 @@ trait HPay_Core_Checkout{
 					echo esc_attr__("Payment partially refunded","holestpay");	
 				}else if(stripos($transaction_pay_status, "REFUNDED") !== false){
 					echo esc_attr__("Payment refunded","holestpay");	
-				}else if(stripos($transaction_pay_status, "REFUSED") !== false){
-					echo esc_attr__("Payment refused","holestpay");	
-					$failed = true;
-				}else if($transaction_pay_status){
+				}else if(stripos($transaction_pay_status, "REFUSED") !== false || stripos($transaction_pay_status, "FAILED") !== false || stripos($transaction_pay_status, "EXPIRED") !== false){
 					echo esc_attr__("Payment failed","holestpay");
 					$failed = true;
+				}else if($transaction_pay_status){
+					echo esc_attr__("Payment","holestpay");
+					echo " " . ucfirst($transaction_pay_status);
 				}
 				echo "</h4>";
 			}
@@ -154,18 +199,27 @@ trait HPay_Core_Checkout{
 			}
 			
 			if(isset($data["transaction_user_info"])){
-				echo "<pre class='hpay-transaction-info method-{$method_id}'>";
+				echo "<pre class='hpay-transaction-info method-{$method_id}' pay_status='{$transaction_pay_status}'>";
 				echo str_replace(array('"',"{","}","[","]"),"",json_encode($this->translateKeys($data["transaction_user_info"]),JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 				echo "</pre>";
 			}
 		}
 		
+		
+		
 		global $hpay_fiscal_shipping_outputed;
 		if(!isset($hpay_fiscal_shipping_outputed))
 			$hpay_fiscal_shipping_outputed = array();
-
-		if($show_payment && $order && !isset($hpay_fiscal_shipping_outputed["{$order_id}_payment"])){
-			$hpay_fiscal_shipping_outputed["{$order_id}_payment"] = true;
+		
+		if($hpay_mail_content_capture_on){
+			$show_payment  = true;
+			$show_fiscal   = true;
+			$show_shipping = true;
+			$show_integr   = true;
+		}
+		
+		if($show_payment && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_payment"]))){
+			if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_payment"] = true;
 			$payment_html = $order->get_meta('_payment_html');
 			if(!$payment_html){
 				$payment_html = "";
@@ -174,8 +228,8 @@ trait HPay_Core_Checkout{
 				echo "<div class='hpay-payment-info'>{$payment_html}</div>";
 		}
 		
-		if($show_fiscal && $order && !isset($hpay_fiscal_shipping_outputed["{$order_id}_fiscal"])){
-			$hpay_fiscal_shipping_outputed["{$order_id}_fiscal"] = true;
+		if($show_fiscal && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_fiscal"]))){
+			if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_fiscal"] = true;
 			
 			$fiscal_user_info   = $order->get_meta('_fiscal_user_info');
 			$fiscal_html        = $order->get_meta('_fiscal_html');
@@ -209,8 +263,8 @@ trait HPay_Core_Checkout{
 		
 		}
 
-		if($show_integr && $order && !isset($hpay_fiscal_shipping_outputed["{$order_id}_integr"])){
-			$hpay_fiscal_shipping_outputed["{$order_id}_integr"] = true;
+		if($show_integr && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_integr"]))){
+			if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_integr"] = true;
 			$integr_html = $order->get_meta('_integr_html');
 			if(!$integr_html){
 				$integr_html = "";
@@ -219,8 +273,8 @@ trait HPay_Core_Checkout{
 				echo "<div class='hpay-integr-info'>{$integr_html}</div>";
 		}
 
-		if($show_shipping && $order && !isset($hpay_fiscal_shipping_outputed["{$order_id}_shipping"])){
-			$hpay_fiscal_shipping_outputed["{$order_id}_shipping"] = true;
+		if($show_shipping && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_shipping"]))){
+			if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_shipping"] = true;
 			
 			$shipping_user_info = $order->get_meta('_shipping_user_info');
 			$shipping_html      = $order->get_meta('_shipping_html');

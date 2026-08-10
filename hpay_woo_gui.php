@@ -51,17 +51,27 @@ trait HPay_Core_WooGUI {
 	}
 	
 	function add_custom_order_button( $actions, $order ) {
-		// You can add conditions here, e.g., only show for specific order statuses
-		
-		$hpay_status = $order->get_meta('_hpay_status');
-		
-		if ( strpos($hpay_status,"PAID") === false && strpos($hpay_status,"RESERVED") === false){
-			$actions['hpay_direct_pay'] = array(
-				'url'  => '/hpay_direct_pay/' . $order->get_id(), 
-				'name' => __( 'PAY NOW...', 'holestpay' ),  
-			);
+		try{
+			$render_button  = false;
+			$hmethod = HPay_Core::payment_method_instance($order->get_payment_method()); 
+			if($hmethod){
+				$hpay_status = $order->get_meta('_hpay_status');
+				if ( strpos($hpay_status,"PAID") === false && strpos($hpay_status,"RESERVED") === false){
+					$render_button  = true;
+				}
+			}else if(!$order->is_paid() && !$order->has_status(array( 'compleated' ))){
+				$render_button  = true;
+			}
+			
+			if($render_button){
+				$actions['hpay_direct_pay'] = array(
+					'url'  => '/hpay_direct_pay/' . $order->get_id(), 
+					'name' => __( 'PAY NOW...', 'holestpay' ),  
+				);
+			}
+		}catch(Throwable $ex){
+			hpay_write_log("error",$ex);
 		}
-
 		return $actions;
 	}
 	
@@ -642,3 +652,4 @@ trait HPay_Core_WooGUI {
 	}
 	
 };
+

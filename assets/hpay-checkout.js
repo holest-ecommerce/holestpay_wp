@@ -1,7 +1,5 @@
 /* HolestPay */
 (function(){
-	
-	
 	if(typeof HolestPayCheckout !== 'undefined' ){
 		let hpay_adding_payment_method = false;
 		let hpay_on_result_callaback = null;
@@ -57,7 +55,7 @@
 		};
 		
 		document.addEventListener("onHpayScriptLoaded", function(e){
-			if(HolestPayCheckout.hpay_autoinit == 1 || document.querySelector("input[value*='hpayshipping-]")){
+			if(is_payment_token_from || HolestPayCheckout.hpay_autoinit == 1 || document.querySelector("input[value*='hpayshipping-]")){
 				HPayInit().then(client => {
 					if(client && client.POS && client.POS.shipping){
 						client.POS.shipping.forEach(s => {
@@ -291,13 +289,28 @@
 					
 					let hcart = HolestPayCheckout.cart || {};
 					
+					let set_installments = null;
+					let pm = HPay.POS.payment.find(pm => pm.HPaySiteMethodId == pm_id);
+					if(pm && pm["User Data"]){
+						String(pm["User Data"] || "").split(/\,|\|/).forEach(opt => {
+							let t = String(opt || "").split(/\:|\=/).map(s=>s.trim()).filter(s=>s);
+							if(t.length > 1){
+								let opt_name = t[0];
+								let opt_val = t[1];
+								if(opt_name == 'set_installments'){
+									set_installments = parseInt(opt_val) || null;
+								}
+							}
+						});
+					}
+					
 					HPay.setPaymentMethodDock(pm_id, {
 						order_amount: hcart.order_amount || 0.00,//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
 						order_currency: hcart.order_currency || "",//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
-						monthly_installments: hcart.monthly_installments || null,//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
+						monthly_installments: set_installments || hcart.monthly_installments || null,//may be element, selector or actual value. Selector may contain {$pmid} replace makro 
 						vault_token_uid: vault_selector || "",//may be element, selector or actual value. Selector may contain {$pmid} replace makro,
 						hpaylang: HolestPayCheckout.hpaylang || "en",
-						cof: hcart.cof || "" 	
+						cof: is_payment_token_from ? "required" : (hcart.cof || "") 	
 					},cnt);// cnt - element or selector. Defaults to first visible div element with data-hpay-dock-payment attribute. Selector may contain {$pmid} replace makro  
 				}
 			}catch(ex){
@@ -541,7 +554,7 @@
 					if(resinp[0]){
 						resinp.val(JSON.stringify(hpay_response));
 						
-						if(window.hpay_last_pay_req){
+						if(window.hpay_last_pay_req && !HolestPayCheckout.dock_payment_methods){
 							presentHPayPayForm(window.hpay_last_pay_req);
 						}else{
 							if(resinp[0].form){
@@ -905,6 +918,8 @@
 		});
 	}
 })();
+
+var is_payment_token_from = false;
 
 function hpay_value_observer(element, callback) {
   (new (window.MutationObserver || window.WebKitMutationObserver)(function(mutations, observer) {
@@ -1545,6 +1560,8 @@ addEventListener("DOMContentLoaded", (event) => {
 			const form = cpm.form;
 			
 			let let_submit = false;
+			
+			is_payment_token_from = true;
 		
 			form.addEventListener('submit', function(e) {
 				if(let_submit)
@@ -1590,6 +1607,9 @@ addEventListener("DOMContentLoaded", (event) => {
 					}
 				}
 			});
+			
+			if(typeof HPayInit !== 'undefined')
+				setTimeout(HPayInit,500);
 		}
 	}
 
@@ -1598,6 +1618,8 @@ addEventListener("DOMContentLoaded", (event) => {
 		if (!form) return;
 		
 		let let_submit = false;
+		
+		is_payment_token_from = true;
 		
 		form.addEventListener('submit', function(e) {
 			if(let_submit){
@@ -1627,8 +1649,6 @@ addEventListener("DOMContentLoaded", (event) => {
 									vault_onlyforuser: r.vault_onlyforuser
 								});
 								form.appendChild(hiddenInput);
-								
-								
 								form.submit(); 
 							}else{
 								setTimeout(function(){
@@ -1644,6 +1664,8 @@ addEventListener("DOMContentLoaded", (event) => {
 		
 		form.querySelectorAll("input[type='radio'][name*='_vault_token_id'][value='']").forEach(el=> el.checked = true); 
 		
+		if(typeof HPayInit !== 'undefined')
+			setTimeout(HPayInit,500);
 	};
 	
 	add_payment_token_from();
@@ -1660,6 +1682,8 @@ addEventListener("DOMContentLoaded", (event) => {
 			},true);
 		});	
 	},150);
+	
+	
 	
 });
 

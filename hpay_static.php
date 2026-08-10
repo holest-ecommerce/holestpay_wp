@@ -107,6 +107,11 @@ trait HPay_Core_Static {
 		global $hpay_pm_class_mapper;
 		$filtered = array();
 		
+		$stype = explode("_",$type);
+		$stype = $stype[0];
+		$stype = explode("-",$stype);
+		$stype = $stype[0];
+		
 		foreach($hpay_pm_class_mapper as $hclass_name => $m){
 			if(!isset($m["instance"])){
 				$cname = $m["alias"];
@@ -115,7 +120,13 @@ trait HPay_Core_Static {
 			if($m["instance"]){
 				if($m["instance"]->enabled != 'yes')
 					continue;
-				if($m["instance"]->hpay_method_type() == $type){
+				
+				$mtype = explode("-",$m["instance"]->hpay_method_type());
+				$mtype = $mtype[0];
+				$mtype = explode("_",$mtype);
+				$mtype = $mtype[0];
+				
+				if($stype == $mtype){
 					$filtered[] = $m["instance"];
 				}
 			}

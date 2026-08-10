@@ -12,6 +12,9 @@ trait HPay_Core_Email{
 		add_action( 'woocommerce_email_after_order_table', array( $this, 'email_content' ), 99, 1 );
 		add_filter( 'woocommerce_email_attachments', array( $this, 'email_attachments' ), 99, 3  );
 		add_filter( 'woocommerce_email_headers', array( $this, 'add_email_headers'), 40, 3 );
+	
+		add_action( 'woocommerce_email', array( $this, 'hpay_woocommerce_starts_mail' ), 1 );
+        add_filter( 'woocommerce_mail_callback', array( $this, 'hpay_woocommerce_ended_mail' ), 999 );
 	}
 	
 	public function thankyou($order_id){
@@ -31,6 +34,17 @@ trait HPay_Core_Email{
 			hpay_write_log("error", $ex);
 		}
 	}
+	
+	public function hpay_woocommerce_starts_mail( $email_class ) {
+        global $hpay_mail_content_capture_on;
+        $hpay_mail_content_capture_on = true;
+    }
+
+    public function hpay_woocommerce_ended_mail( $callback ) {
+        global $hpay_mail_content_capture_on;
+        $hpay_mail_content_capture_on = false;
+        return $callback;
+    }
 	
 	public function order_view($order_id){
 		try{
@@ -91,7 +105,9 @@ trait HPay_Core_Email{
 	
 	public function email_content($order){
 		try{
-			
+			global $hpay_mail_content_capture_on;
+			$hpay_mail_content_capture_on = true;//auxilary set
+		
 			if($this->getSetting('woo_embeded_mails') == 1){
 				
 				if(HPAY_DEBUG_TRACE)
@@ -105,6 +121,7 @@ trait HPay_Core_Email{
 					$order = hpay_get_order($order_id, true);
 					$order_id = $order->get_id();
 				}
+				
 				
 				ob_start();
 				$this->thankyou($order_id);

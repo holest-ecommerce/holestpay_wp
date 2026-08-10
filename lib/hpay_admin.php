@@ -537,7 +537,7 @@ class HPay_Admin{
 							}else{
 								if(time() - intval($hpay_charge_after_ts) < 3600){
 								?>
-									<p><b><?php echo esc_attr__("Attempting the order change is planned for the next batch run. If you want to prevent it change order status to something else than 'pending'.","holestpay"); ?></b></p>
+									<p><b><?php echo esc_attr__("Attempting the order charge is planned for the next batch run. If you want to prevent it change order status to something else than 'pending'.","holestpay"); ?></b></p>
 								<?php	
 								}
 							}
@@ -615,7 +615,9 @@ class HPay_Admin{
 										$transaction_pay_status =  "PARTIALLY-REFUNDED";
 									}else if(stripos($resp["status"],"REFUNDED") !== false){
 										$transaction_pay_status =  "REFUNDED";
-									}
+									}else{
+										$transaction_pay_status = HPay_Core::instance()->extractPaymentStatus($resp["status"]);
+									} 
 									
 									$transaction_info["pay_status"] = $resp["status"];
 									$last_status = $resp["status"];
@@ -846,6 +848,15 @@ class HPay_Admin{
 			$hmethods = HPay_Core::payment_methods_of_type($token->hpaymethodtype());
 			if(!empty($hmethods)){
 				
+				if($order->get_payment_method() && strpos($order->get_payment_method(),"hpaypayment-") !== false && !empty($hmethods)){
+					foreach($hmethods as $hmethod){
+						if($hmethod->id == $order->get_payment_method()){
+							$hmethods = array($hmethod);
+							break;
+						}
+					}	
+				}
+				
 				foreach($hmethods as $hmethod){
 					try{
 						if(!$hmethod)
@@ -866,7 +877,7 @@ class HPay_Admin{
 								
 								$hmethod->acceptResult($order, $resp);
 								
-								if(strpos($resp["status"],"SUCCESS") !== false || strpos($resp["status"],"PAID") !== false || strpos($resp["status"],"RESERVED") !== false || strpos($resp["status"], "AWAITING") !== false){
+								if(strpos($resp["status"],"SUCCESS") !== false || strpos($resp["status"],"PAID") !== false || strpos($resp["status"],"PAYING") !== false || strpos($resp["status"],"RESERVED") !== false || strpos($resp["status"], "AWAITING") !== false){
 									$last_success = $resp;
 									break;
 								}else{
@@ -890,6 +901,13 @@ class HPay_Admin{
 		}
 		
 		if($last_success){
+			if(isset($last_success["status"]) && (strpos($last_success["status"],"SUCCESS") !== false || strpos($last_success["status"],"PAID") !== false)){
+				$order->update_meta_data("_hpay_autocharged", 1);
+				$order->delete_meta_data("_hpay_charge_after_ts");
+				$order->delete_meta_data("_hpay_charge_tries");
+				$order->delete_meta_data("_hpay_charge_attempt_ts");
+				$order->save_meta_data();
+			}
 			return $last_success;
 		}else if($last_failed){
 			return $last_failed;
@@ -1299,8 +1317,10 @@ class HPay_Admin{
 			echo '<!-- HPAY EX: ' . $ex->getMessage() . ' -->';
 		}
 		
+		
+		
 		?>
-		<div id="hpay_settings_page" locale="<?php echo esc_attr(HPay_Core::hpaylang()); ?>" style='background-image:url(<?php echo esc_attr(HPAY_PLUGIN_URL .'/assets/logo.png')?>)'>
+		<div ts="<?php echo esc_attr(time()); ?>" last_webhook_ts="<?php echo esc_attr(get_option('_last_hpay_webhook_ts','')); ?>" id="hpay_settings_page" locale="<?php echo esc_attr(HPay_Core::hpaylang()); ?>" style='background-image:url(<?php echo esc_attr(HPAY_PLUGIN_URL .'/assets/logo.png')?>)'>
 		   <h2>HolestPay</h2>
 		   <p class='hpay_pci_dss'><a target="_blank" href="https://www.pcisecuritystandards.org/"><?php echo esc_attr__("PCI DSS COMPLIANT PAYMENT SERVICE PRIVIDER","holestpay"); ?></a> - <?php echo esc_attr__("you don't need to perform quarter penetration testings, fill up SAQ questionnaires or adapt server to be PCI DSS complient merchant - all this is transfered/handled for you by HolestPay","holestpay"); ?></p>
 		   <p class='flex-column' label="<?php echo esc_attr__("HolestPay environment","holestpay"); ?>">
@@ -1318,7 +1338,9 @@ class HPay_Admin{
 					<a hpayopen="app" target="_blank" id="cmdOpenHpay" class='button button-primary'><img src="<?php echo esc_attr__(HPAY_PLUGIN_URL .'/assets/icon-18.png'); ?>" /> <?php echo esc_attr__("Open HolestPay panel...","holestpay"); ?></a>
 				</span>
 		   </p>
-		   
+		   <div id="hpay_warn_wh" style='color:red;display:none;'>
+				<?php echo esc_attr__("WARNING: No HPay webhook data has been received recently. Please ensure that you have whitelisted 95.217.201.105, 2a01:4f9:4a:4456::2, and pay.holest.com. Also, verify that the 'I(P|S|F|I)N - Instant payment/shipping/fiscal/integration notification URL' is configured correctly for this site in the HPay panel.","holestpay"); ?>
+		   </div>
 		   <div id="hpay_panel">
 		      <div id="hpay_panel_menu">
 					<hr/>
@@ -1724,6 +1746,7 @@ class HPay_Admin{
 						<p>
 							Additional: <a target="_blank" href="https://holest.com/updatescheck/?sku=1016001&download=1">Download Checkout Installments Plugin (activate with HPay key)</a>
 						</p>
+						<p>HELPER SHORTCODES: [hpay_no_default_payment_method],[hpay_tos_in_new_tab],[hpay_tos_in_new_tab hpaymodal="1"],[hpay_show_order_details text_before_success="Hvala na kupovini!" text_before_failed="Plaćanje nije uspelo!" only_thankyou="1"]<p>
 					  <div>
 				  </div>	
 			   </div>
@@ -1949,6 +1972,7 @@ function mysite_hourly_run($order_id){
 		   
 		   
 		   </div>
+		   
 		</div>
 		<script type="text/javascript">
 			jQuery(document).ready(function(){

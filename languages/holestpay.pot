@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: HolestPay Payments Plugin WooCommerce or Standalone\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-30 20:30+0000\n"
+"POT-Creation-Date: 2026-06-02 08:50+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
@@ -16,78 +16,78 @@ msgstr ""
 "X-Loco-Version: 2.6.4; wp-6.2.2\n"
 "X-Domain: holestpay"
 
-#: hpay_woo.php:757
+#: hpay_woo.php:756
 msgid "(hpay) Unexpected status change by a external plugin. Corrected back:"
 msgstr ""
 
-#: hpay_checkout.php:325
+#: hpay_checkout.php:365
 msgid "(if multiple split with ,)"
 msgstr ""
 
-#: lib/hpay_admin.php:1626
+#: lib/hpay_admin.php:1636
 msgid "(natively supported)"
 msgstr ""
 
-#: lib/hpay_admin.php:1648
+#: lib/hpay_admin.php:1670
 msgid ""
 "* by default all methods are available for subscriptions. Tick this to limit "
 "only to no-customer-presence charges (recurring, card-on-file, mit) capable "
 "methods."
 msgstr ""
 
-#: lib/hpay_admin.php:1368 lib/hpay_admin.php:1384 lib/hpay_admin.php:1403
+#: lib/hpay_admin.php:1370 lib/hpay_admin.php:1386 lib/hpay_admin.php:1404
 msgid "--none--"
 msgstr ""
 
 #: lib/hpay_front.php:137
-msgid "406 Not accepatable"
+msgid "406 Not accepatable :user_operations[1]"
 msgstr ""
 
-#: lib/hpay_admin.php:1410
+#: lib/hpay_admin.php:1411
 msgid "add a company registry ID field"
 msgstr ""
 
-#: lib/hpay_admin.php:1392
+#: lib/hpay_admin.php:1394
 msgid "add a company TAX ID field"
 msgstr ""
 
-#: lib/hpay_admin.php:1376
+#: lib/hpay_admin.php:1378
 msgid "add a is-company field"
 msgstr ""
 
-#: lib/hpay_admin.php:1418
+#: lib/hpay_admin.php:1428
 msgid ""
 "Add customer CC mail address(es) for order status updates field on the "
 "checkout"
 msgstr ""
 
-#: lib/hpay_admin.php:1651
+#: lib/hpay_admin.php:1673
 msgid ""
 "Add HolestPay subsciptions support to my products/variants (if you don't "
 "have other subscription plugin): "
 msgstr ""
 
-#: lib/hpay_admin.php:1841
+#: lib/hpay_admin.php:1864
 msgid "Allow re-schedule by client"
 msgstr ""
 
-#: lib/hpay_admin.php:1844
+#: lib/hpay_admin.php:1867
 msgid "Allow subscription item(s) update by client"
 msgstr ""
 
-#: lib/hpay_admin.php:1598
+#: lib/hpay_admin.php:1608
 msgid "Allways store orders to HPay"
 msgstr ""
 
-#: lib/hpay_admin.php:1460
+#: lib/hpay_admin.php:1470
 msgid "Alter this setting if needed..."
 msgstr ""
 
-#: lib/hpay_admin.php:1453
+#: lib/hpay_admin.php:1463
 msgid "Always"
 msgstr ""
 
-#: lib/hpay_admin.php:1616
+#: lib/hpay_admin.php:1626
 msgid "Always require payment token vault refernce save"
 msgstr ""
 
@@ -95,40 +95,40 @@ msgstr ""
 msgid "amount"
 msgstr ""
 
-#: lib/hpay_front.php:334
+#: lib/hpay_front.php:358
 msgid "Amount in order currency"
 msgstr ""
 
-#: lib/hpay_front.php:335
+#: lib/hpay_front.php:359
 msgid "Amount in payment currency"
 msgstr ""
 
-#: lib/hpay_admin.php:1785
+#: lib/hpay_admin.php:1808
 msgid "Amount stays same yes|no"
 msgstr ""
 
-#: lib/hpay_admin.php:1429
+#: lib/hpay_admin.php:1439
 msgid "Append order id"
 msgstr ""
 
-#: lib/hpay_admin.php:1847
+#: lib/hpay_admin.php:1870
 msgid "Assigned user role(s)"
 msgstr ""
 
 #: lib/hpay_admin.php:540
 msgid ""
-"Attempting the order change is planned for the next batch run. If you want "
+"Attempting the order charge is planned for the next batch run. If you want "
 "to prevent it change order status to something else than 'pending'."
 msgstr ""
 
-#: lib/hpay_admin.php:1566
+#: lib/hpay_admin.php:1576
 msgid ""
 "ATTENTION: invoking default actions from site corresponds to manual calls "
 "(if you use this, then in most cases settings on HPay panel should be set as "
 "for manuall invokation)."
 msgstr ""
 
-#: lib/hpay_front.php:328
+#: lib/hpay_front.php:352
 msgid "Authorization Code"
 msgstr ""
 
@@ -136,15 +136,15 @@ msgstr ""
 msgid "Available user charge tokens"
 msgstr ""
 
-#: hpay_checkout.php:136
+#: hpay_checkout.php:176
 msgid "Awaiting payment"
 msgstr ""
 
-#: lib/hpay_admin.php:1208
+#: lib/hpay_admin.php:1210
 msgid "Back"
 msgstr ""
 
-#: hpay_class.php:2106
+#: hpay_class.php:2050
 msgid "BAD_ORDER_DATA"
 msgstr ""
 
@@ -152,37 +152,37 @@ msgstr ""
 msgid "BAM"
 msgstr ""
 
-#: lib/hpay_admin.php:1422
+#: lib/hpay_admin.php:1432
 msgid "BCC for all customer emails (comma separated for multiple)"
 msgstr ""
 
-#: lib/hpay_admin.php:1663
+#: lib/hpay_admin.php:1685
 msgid ""
 "Before running smart tool make sure you have at least one product defined as "
 "an subscription from your plugin."
 msgstr ""
 
-#: lib/hpay_admin.php:1203
+#: lib/hpay_admin.php:1205
 msgid ""
 "Can not contact HolestPay. Maybe popup blocker prevents connection dialog - "
 "if you saw no pupup appear then please check right side of browser address "
 "bar for warning!"
 msgstr ""
 
-#: lib/hpay_admin.php:1222
+#: lib/hpay_admin.php:1224
 msgid "Cancel"
 msgstr ""
 
-#: hpay_class.php:2141 hpay_class.php:2148
+#: hpay_class.php:2085 hpay_class.php:2092
 msgid "CANNOT_GET_ORDER_LOCK"
 msgstr ""
 
-#: lib/hpay_front.php:337
+#: lib/hpay_front.php:361
 msgid "Captured amount"
 msgstr ""
 
 #: class/class-wc-hpay-shipping-method.php:92
-#: class/class-wc-hpay-payment-gateway.php:151
+#: class/class-wc-hpay-payment-gateway.php:155
 msgid "Change Enabled/Disabled on HolestPay"
 msgstr ""
 
@@ -195,37 +195,41 @@ msgstr ""
 msgid "Charge customer for this order"
 msgstr ""
 
-#: lib/hpay_admin.php:1780
+#: lib/hpay_admin.php:1803
 msgid "Charged renewal amount"
 msgstr ""
 
-#: lib/hpay_admin.php:1792
+#: lib/hpay_admin.php:1815
 msgid "Charged renewal amount currency"
 msgstr ""
 
-#: lib/hpay_admin.php:1598
+#: lib/hpay_admin.php:1608
 msgid ""
 "Check this if you want HPay to record all orders no matter if HPay payment, "
 "shipping, integration or fiscal operation take place"
 msgstr ""
 
-#: lib/hpay_admin.php:1599
+#: lib/hpay_admin.php:1609
 msgid ""
 "Check this if you want that all HPay results information intended for "
 "customers get embeded into WC mails. You can then turn off default HPay "
 "notifications."
 msgstr ""
 
-#: lib/hpay_admin.php:1401
+#: lib/hpay_admin.php:1402
 msgid "Checkout billing company registry ID field"
 msgstr ""
 
-#: lib/hpay_admin.php:1382
+#: lib/hpay_admin.php:1384
 msgid "Checkout billing company TAX ID field"
 msgstr ""
 
-#: lib/hpay_admin.php:1366
+#: lib/hpay_admin.php:1368
 msgid "Checkout billing is company field"
+msgstr ""
+
+#: lib/hpay_admin.php:1424
+msgid "choose | set custom meta"
 msgstr ""
 
 #: hpay_woo_gui.php:413 hpay_woo_gui.php:536
@@ -236,28 +240,28 @@ msgstr ""
 msgid "Client names the price - min/max"
 msgstr ""
 
-#: lib/hpay_admin.php:1763
+#: lib/hpay_admin.php:1786
 msgid "Common product subscription fileds"
 msgstr ""
 
-#: lib/hpay_front.php:355
+#: lib/hpay_front.php:379
 msgid "Company Name"
 msgstr ""
 
-#: hpay_checkout.php:306 lib/hpay_front.php:354
+#: hpay_checkout.php:346 lib/hpay_front.php:378
 msgid "Company Register ID"
 msgstr ""
 
-#: hpay_checkout.php:287 lib/hpay_front.php:353
+#: hpay_checkout.php:327 lib/hpay_front.php:377
 msgid "Company Tax ID"
 msgstr ""
 
 #: class/class-wc-hpay-shipping-method.php:90
-#: class/class-wc-hpay-payment-gateway.php:149
+#: class/class-wc-hpay-payment-gateway.php:153
 msgid "Configure on HolestPay portal"
 msgstr ""
 
-#: class/class-wc-hpay-payment-gateway.php:144
+#: class/class-wc-hpay-payment-gateway.php:148
 #, php-format
 msgid "Configure this payment method on %s"
 msgstr ""
@@ -267,11 +271,11 @@ msgstr ""
 msgid "Configure this shipping method on %s"
 msgstr ""
 
-#: lib/hpay_admin.php:1315
+#: lib/hpay_admin.php:1317
 msgid "Connect"
 msgstr ""
 
-#: lib/hpay_admin.php:1548
+#: lib/hpay_admin.php:1558
 msgid "Considered as paid if status is"
 msgstr ""
 
@@ -279,43 +283,43 @@ msgstr ""
 msgid "Copy link to memory"
 msgstr ""
 
-#: lib/hpay_admin.php:732
+#: lib/hpay_admin.php:734
 msgid "Could not delete user vault payment token!"
 msgstr ""
 
-#: lib/hpay_admin.php:755
+#: lib/hpay_admin.php:757
 msgid "Could not set default user vault payment token!"
 msgstr ""
 
-#: lib/hpay_admin.php:1890
+#: lib/hpay_admin.php:1913
 msgid "Create renewal order to payment try delay days"
 msgstr ""
 
-#: lib/hpay_admin.php:1674
+#: lib/hpay_admin.php:1696
 msgid "Create renwal order to payment delay"
 msgstr ""
 
-#: lib/hpay_admin.php:1213
+#: lib/hpay_admin.php:1215
 msgid "Custom integration"
 msgstr ""
 
-#: lib/hpay_admin.php:1861
+#: lib/hpay_admin.php:1884
 msgid "Data references"
 msgstr ""
 
-#: lib/hpay_admin.php:1677
+#: lib/hpay_admin.php:1699
 msgid "Days"
 msgstr ""
 
-#: lib/hpay_admin.php:1629 lib/hpay_admin.php:1637
+#: lib/hpay_admin.php:1639 lib/hpay_admin.php:1647 lib/hpay_admin.php:1656
 msgid "DETECTED"
 msgstr ""
 
-#: lib/hpay_admin.php:1869
+#: lib/hpay_admin.php:1892
 msgid "Detected sample value"
 msgstr ""
 
-#: lib/hpay_admin.php:1827
+#: lib/hpay_admin.php:1850
 msgid "Different inital payment enable"
 msgstr ""
 
@@ -323,15 +327,15 @@ msgstr ""
 msgid "Direct purchase link offer for"
 msgstr ""
 
-#: lib/hpay_admin.php:1316
+#: lib/hpay_admin.php:1318
 msgid "Disconnect"
 msgstr ""
 
-#: lib/hpay_admin.php:1205
+#: lib/hpay_admin.php:1207
 msgid "Disconnect HolestPay?"
 msgstr ""
 
-#: lib/hpay_admin.php:1225
+#: lib/hpay_admin.php:1227
 msgid "Discount of %s% is applied to this offer link."
 msgstr ""
 
@@ -343,45 +347,45 @@ msgstr ""
 msgid "Discount validity days"
 msgstr ""
 
-#: lib/hpay_admin.php:1600
+#: lib/hpay_admin.php:1610
 msgid "Dock dockable payment methods"
 msgstr ""
 
-#: lib/hpay_admin.php:1326
+#: lib/hpay_admin.php:1328
 msgid "Edit company info"
 msgstr ""
 
-#: lib/hpay_admin.php:1327
+#: lib/hpay_admin.php:1329
 msgid "Edit site info"
 msgstr ""
 
-#: lib/hpay_admin.php:1599
+#: lib/hpay_admin.php:1609
 msgid "Embed results into WC mails"
 msgstr ""
 
-#: hpay_class.php:2087
+#: hpay_class.php:2031
 msgid "EMPTY_OUTCOME_DATA"
 msgstr ""
 
-#: lib/hpay_admin.php:1691
+#: lib/hpay_admin.php:1713
 msgid "Enable fast checkout QR codes"
 msgstr ""
 
-#: lib/hpay_admin.php:1596
+#: lib/hpay_admin.php:1606
 msgid "Enable I(P/F-I/S)N log"
 msgstr ""
 
-#: lib/hpay_admin.php:1597
+#: lib/hpay_admin.php:1607
 msgid ""
 "enable if you want to first send customer to the 'thank you' page (by "
 "default payment runs straight at the checkout page)"
 msgstr ""
 
-#: lib/hpay_admin.php:1638
+#: lib/hpay_admin.php:1657
 msgid "Enable integration"
 msgstr ""
 
-#: lib/hpay_admin.php:1348
+#: lib/hpay_admin.php:1350
 msgid "Enable on frontend"
 msgstr ""
 
@@ -410,31 +414,31 @@ msgstr ""
 msgid "Enter valid email(s)!"
 msgstr ""
 
-#: lib/hpay_front.php:325
+#: lib/hpay_front.php:349
 msgid "Error"
 msgstr ""
 
-#: lib/hpay_admin.php:1219
+#: lib/hpay_admin.php:1221
 msgid "Error during operation!"
 msgstr ""
 
-#: hpay_class.php:1344
+#: hpay_class.php:1294
 msgid "Error exception on HPAY charge try"
 msgstr ""
 
-#: hpay_class.php:1049
+#: hpay_class.php:1089
 msgid "Error exception on HPAY store order try"
 msgstr ""
 
-#: lib/hpay_front.php:346
+#: lib/hpay_front.php:370
 msgid "Error in payment request. Please check your email and contact us!"
 msgstr ""
 
-#: lib/hpay_admin.php:1204
+#: lib/hpay_admin.php:1206
 msgid "Error saving settings"
 msgstr ""
 
-#: lib/hpay_front.php:323
+#: lib/hpay_front.php:347
 msgid "Error, please contact us for assitance. "
 msgstr ""
 
@@ -442,29 +446,29 @@ msgstr ""
 msgid "Error: Mail not sent!"
 msgstr ""
 
-#: lib/hpay_admin.php:1229
+#: lib/hpay_admin.php:1231
 msgid "ERROR: mail sending failed"
 msgstr ""
 
-#: hpay_class.php:2745
+#: hpay_class.php:2689
 msgid "ERROR_EXCEPTION"
 msgstr ""
 
-#: hpay_class.php:621
+#: hpay_class.php:642
 msgid "Failed: no valid payment info response"
 msgstr ""
 
-#: lib/hpay_admin.php:1695
+#: lib/hpay_admin.php:1717
 msgid "Fast checkout QR codes - clear basket"
 msgstr ""
 
-#: lib/hpay_admin.php:1721
+#: lib/hpay_admin.php:1744
 msgid ""
 "Find & select a sample subsciption product/variant you have set up in your "
 "custom/3rd-party subscription plugin ..."
 msgstr ""
 
-#: lib/hpay_admin.php:1210
+#: lib/hpay_admin.php:1212
 msgid "Finish"
 msgstr ""
 
@@ -477,27 +481,27 @@ msgid ""
 "charge change order status to something else than 'pending'."
 msgstr ""
 
-#: lib/hpay_admin.php:1799
+#: lib/hpay_admin.php:1822
 msgid "First renewal after"
 msgstr ""
 
-#: lib/hpay_admin.php:1805
+#: lib/hpay_admin.php:1828
 msgid "First renewal after unit day/week/month/year"
 msgstr ""
 
-#: lib/hpay_admin.php:1564
+#: lib/hpay_admin.php:1574
 msgid "Fiscal & Integartion methods"
 msgstr ""
 
-#: lib/hpay_admin.php:1602
+#: lib/hpay_admin.php:1612
 msgid "Footer branding template"
 msgstr ""
 
-#: lib/hpay_admin.php:1605
+#: lib/hpay_admin.php:1615
 msgid "From HPay site/POS settings..."
 msgstr ""
 
-#: hpay_class.php:2617
+#: hpay_class.php:2561
 msgid "Full refund"
 msgstr ""
 
@@ -517,7 +521,7 @@ msgstr ""
 msgid "Hi,"
 msgstr ""
 
-#: lib/hpay_admin.php:700
+#: lib/hpay_admin.php:702
 msgid "Hide transactions"
 msgstr ""
 
@@ -525,11 +529,11 @@ msgstr ""
 msgid "HOLEST E-COMMERCE"
 msgstr ""
 
-#: lib/hpay_admin.php:295 lib/hpay_admin.php:1269 lib/hpay_admin.php:1269
+#: lib/hpay_admin.php:295 lib/hpay_admin.php:1271 lib/hpay_admin.php:1271
 msgid "HolestPay"
 msgstr ""
 
-#: lib/hpay_admin.php:1898
+#: lib/hpay_admin.php:1921
 msgid ""
 "HolestPay can only create renewal as an normal WooCommerce order with "
 "products detected as subsciptions in the original checkout order. You will "
@@ -539,11 +543,11 @@ msgid ""
 "about this. You may also use all other regular wooCommerce hooks/filters."
 msgstr ""
 
-#: lib/hpay_admin.php:1306
+#: lib/hpay_admin.php:1308
 msgid "HolestPay environment"
 msgstr ""
 
-#: lib/hpay_admin.php:1660
+#: lib/hpay_admin.php:1682
 msgid ""
 "HolestPay may invoke renewal order creation in behalf of your custom plugin -"
 " but its better that your plugin performs that becuse usually additional "
@@ -564,27 +568,27 @@ msgstr ""
 msgid "HolestPay Payments Plugin WooCommerce or Standalone"
 msgstr ""
 
-#: lib/hpay_admin.php:1206
+#: lib/hpay_admin.php:1208
 msgid "Hooks/coding reference"
 msgstr ""
 
-#: lib/hpay_admin.php:1678
+#: lib/hpay_admin.php:1700
 msgid "Hours"
 msgstr ""
 
-#: hpay_class.php:288
+#: hpay_class.php:309
 msgid "HPAY aborted payment response"
 msgstr ""
 
-#: hpay_class.php:1515
+#: hpay_class.php:1461
 msgid "HPAY bad response"
 msgstr ""
 
-#: hpay_class.php:1518
+#: hpay_class.php:1464
 msgid "HPAY bad response object"
 msgstr ""
 
-#: hpay_class.php:1538
+#: hpay_class.php:1484
 msgid "HPAY can not lock the order!"
 msgstr ""
 
@@ -592,55 +596,55 @@ msgstr ""
 msgid "HPay Cart Data"
 msgstr ""
 
-#: lib/hpay_admin.php:798
+#: lib/hpay_admin.php:800
 msgid "HPAY Charge aleady called for order"
 msgstr ""
 
-#: hpay_class.php:1234
+#: hpay_class.php:1274
 msgid "HPAY charge error"
 msgstr ""
 
-#: hpay_class.php:1240
+#: hpay_class.php:1280
 msgid "HPAY charge error response"
 msgstr ""
 
-#: hpay_class.php:1242
+#: hpay_class.php:1282
 msgid "HPAY charge error response object"
 msgstr ""
 
-#: lib/hpay_admin.php:879
+#: lib/hpay_admin.php:881
 msgid "HPAY Charge Error:"
 msgstr ""
 
-#: hpay_class.php:1244
+#: hpay_class.php:1284
 msgid "HPAY charge response rejected due incorrect verification string!"
 msgstr ""
 
-#: lib/hpay_admin.php:897
+#: lib/hpay_admin.php:899
 msgid "HPAY Charge: charge failed"
 msgstr ""
 
-#: lib/hpay_admin.php:804
+#: lib/hpay_admin.php:806
 msgid "HPAY Charge: No order for charge provided"
 msgstr ""
 
-#: lib/hpay_admin.php:889
+#: lib/hpay_admin.php:891
 msgid "HPAY Charge: No usable payment method found"
 msgstr ""
 
-#: lib/hpay_admin.php:838
+#: lib/hpay_admin.php:840
 msgid "HPAY Charge: No usable payment token found"
 msgstr ""
 
-#: lib/hpay_admin.php:808 lib/hpay_admin.php:812
+#: lib/hpay_admin.php:810 lib/hpay_admin.php:814
 msgid "HPAY Charge: non WC_Order object given for charge"
 msgstr ""
 
-#: lib/hpay_admin.php:820
+#: lib/hpay_admin.php:822
 msgid "HPAY Charge: Order has no customer set"
 msgstr ""
 
-#: lib/hpay_admin.php:816
+#: lib/hpay_admin.php:818
 msgid "HPAY Charge: Order is already paid"
 msgstr ""
 
@@ -648,27 +652,27 @@ msgstr ""
 msgid "HPay column layout"
 msgstr ""
 
-#: hpay_class.php:927
+#: hpay_class.php:967
 msgid "HPAY Fiscal/Integration defaultAction call"
 msgstr ""
 
-#: hpay_class.php:1640
+#: hpay_class.php:1586
 msgid "HPAY payment completed"
 msgstr ""
 
-#: hpay_class.php:1687
+#: hpay_class.php:1631
 msgid "HPAY payment failed"
 msgstr ""
 
-#: hpay_class.php:1735
+#: hpay_class.php:1679
 msgid "HPAY response rejected due incorrect verification string!"
 msgstr ""
 
-#: lib/hpay_admin.php:1275
+#: lib/hpay_admin.php:1277
 msgid "HPay Site Setup..."
 msgstr ""
 
-#: hpay_class.php:1173 hpay_class.php:1179
+#: hpay_class.php:1213 hpay_class.php:1219
 msgid "HPAY skiped charge because order is already paid"
 msgstr ""
 
@@ -676,19 +680,19 @@ msgstr ""
 msgid "HPay Status"
 msgstr ""
 
-#: hpay_class.php:1024
+#: hpay_class.php:1064
 msgid "HPAY store order error"
 msgstr ""
 
-#: hpay_class.php:1028
+#: hpay_class.php:1068
 msgid "HPAY store order error response"
 msgstr ""
 
-#: hpay_class.php:1030
+#: hpay_class.php:1070
 msgid "HPAY store order error response object"
 msgstr ""
 
-#: hpay_class.php:1033
+#: hpay_class.php:1073
 msgid "HPAY store order response rejected due incorrect verification string!"
 msgstr ""
 
@@ -696,28 +700,28 @@ msgstr ""
 msgid "https://ecommerce.holest.com"
 msgstr ""
 
-#: lib/hpay_admin.php:1788
+#: lib/hpay_admin.php:1811
 msgid "If charged amount stays after you change prices on the site"
 msgstr ""
 
-#: lib/hpay_admin.php:1802 lib/hpay_admin.php:1808
+#: lib/hpay_admin.php:1825 lib/hpay_admin.php:1831
 msgid "If first COF charge is not after regular interval"
 msgstr ""
 
-#: lib/hpay_admin.php:1672
+#: lib/hpay_admin.php:1694
 msgid ""
 "If smart tool did not work for you, you can always just provide needed data "
 "vai hooks code to HolestPay on checkout, or run some actions on payment "
 "completion..."
 msgstr ""
 
-#: lib/hpay_admin.php:1835
+#: lib/hpay_admin.php:1858
 msgid ""
 "If specified it will be checked otherwise existance of interval, interval "
 "unit and amount will indicate subscription"
 msgstr ""
 
-#: lib/hpay_admin.php:1723
+#: lib/hpay_admin.php:1746
 msgid ""
 "If you have been trying around varius subscription plugins we recommend that "
 "you create fresh subscription product and set it up (make sure you set up "
@@ -727,88 +731,88 @@ msgid ""
 "fresh product/order data for samples."
 msgstr ""
 
-#: lib/hpay_admin.php:1618
+#: lib/hpay_admin.php:1628
 msgid ""
 "if you need to check all renewal orders before charge this may be required"
 msgstr ""
 
-#: lib/hpay_admin.php:1379
+#: lib/hpay_admin.php:1381
 msgid "if you use block checkout you must turn on 'company' address field"
 msgstr ""
 
-#: lib/hpay_admin.php:1312
+#: lib/hpay_admin.php:1314
 msgid ""
 "IMPORTANT: Please un-block connect popup in you browser address bar if "
 "'blocked' notification appears when you click on 'Connect' button!"
 msgstr ""
 
-#: lib/hpay_admin.php:1897
+#: lib/hpay_admin.php:1920
 msgid "In case you enabled HolestPay renewal order creation, then:"
 msgstr ""
 
-#: lib/hpay_admin.php:1771 lib/hpay_admin.php:1777
+#: lib/hpay_admin.php:1794 lib/hpay_admin.php:1800
 msgid "Indicative that this is an subscription"
 msgstr ""
 
-#: lib/hpay_admin.php:1782
+#: lib/hpay_admin.php:1805
 msgid ""
 "Indicative that this is an subscription. First payment will just take "
 "checkout amount."
 msgstr ""
 
-#: lib/hpay_admin.php:1830
+#: lib/hpay_admin.php:1853
 msgid "Inital payment amount"
 msgstr ""
 
-#: class/class-wc-hpay-payment-gateway.php:545 lib/hpay_front.php:338
+#: class/class-wc-hpay-payment-gateway.php:563 lib/hpay_front.php:362
 msgid "Installments"
 msgstr ""
 
-#: lib/hpay_front.php:339
+#: lib/hpay_front.php:363
 msgid "Installments grace months"
 msgstr ""
 
-#: lib/hpay_admin.php:1769
+#: lib/hpay_admin.php:1792
 msgid "Interval"
 msgstr ""
 
-#: lib/hpay_admin.php:1774
+#: lib/hpay_admin.php:1797
 msgid "Interval unit day/week/month/year"
 msgstr ""
 
-#: lib/hpay_admin.php:1885
+#: lib/hpay_admin.php:1908
 msgid "Invoke renewal order creation (if your plugin does not do that itself)"
 msgstr ""
 
-#: lib/hpay_admin.php:1833
+#: lib/hpay_admin.php:1856
 msgid "Is subscription indicator"
 msgstr ""
 
-#: lib/hpay_admin.php:1215
+#: lib/hpay_admin.php:1217
 msgid "It is required to use HTTPS on sites that process payments!"
 msgstr ""
 
-#: lib/hpay_admin.php:1818
+#: lib/hpay_admin.php:1841
 msgid "Limited duration enable"
 msgstr ""
 
-#: lib/hpay_admin.php:1821
+#: lib/hpay_admin.php:1844
 msgid "Limited duration interval - number"
 msgstr ""
 
-#: lib/hpay_admin.php:1824
+#: lib/hpay_admin.php:1847
 msgid "Limited duration interval unit day/week/month/year"
 msgstr ""
 
-#: lib/hpay_admin.php:1344
+#: lib/hpay_admin.php:1346
 msgid "Local site settings"
 msgstr ""
 
-#: lib/hpay_admin.php:1596
+#: lib/hpay_admin.php:1606
 msgid "log dir is /wp-content/uploads/hpay-logs/"
 msgstr ""
 
-#: lib/hpay_admin.php:1228
+#: lib/hpay_admin.php:1230
 msgid "Mail sent successfully"
 msgstr ""
 
@@ -816,19 +820,19 @@ msgstr ""
 msgid "Mail sent successfully!"
 msgstr ""
 
-#: lib/hpay_admin.php:1330
+#: lib/hpay_admin.php:1332
 msgid "Manage fiscal/e-invoice/integration methods"
 msgstr ""
 
-#: lib/hpay_admin.php:1262
+#: lib/hpay_admin.php:1264
 msgid "Manage HolestPay payment methods..."
 msgstr ""
 
-#: lib/hpay_admin.php:1255
+#: lib/hpay_admin.php:1257
 msgid "Manage HolestPay shiping methods..."
 msgstr ""
 
-#: lib/hpay_admin.php:1216
+#: lib/hpay_admin.php:1218
 msgid "Manage on HolestPay"
 msgstr ""
 
@@ -836,11 +840,11 @@ msgstr ""
 msgid "Manage on HolestPay..."
 msgstr ""
 
-#: lib/hpay_admin.php:1328
+#: lib/hpay_admin.php:1330
 msgid "Manage payment methods"
 msgstr ""
 
-#: lib/hpay_admin.php:1329
+#: lib/hpay_admin.php:1331
 msgid "Manage shipping methods"
 msgstr ""
 
@@ -860,41 +864,41 @@ msgstr ""
 msgid "MKD"
 msgstr ""
 
-#: lib/hpay_admin.php:1209
+#: lib/hpay_admin.php:1211
 msgid "Next"
 msgstr ""
 
-#: hpay_checkout.php:624 lib/hpay_admin.php:1221 lib/hpay_admin.php:1352
+#: hpay_checkout.php:669 lib/hpay_admin.php:1223 lib/hpay_admin.php:1354
 msgid "No"
 msgstr ""
 
-#: lib/hpay_admin.php:1618
+#: lib/hpay_admin.php:1628
 msgid "No automatic charges"
 msgstr ""
 
-#: lib/hpay_admin.php:1466 lib/hpay_admin.php:1477 lib/hpay_admin.php:1488
-#: lib/hpay_admin.php:1499 lib/hpay_admin.php:1510 lib/hpay_admin.php:1521
-#: lib/hpay_admin.php:1532
+#: lib/hpay_admin.php:1476 lib/hpay_admin.php:1487 lib/hpay_admin.php:1498
+#: lib/hpay_admin.php:1509 lib/hpay_admin.php:1520 lib/hpay_admin.php:1531
+#: lib/hpay_admin.php:1542
 msgid "No change leave as is"
 msgstr ""
 
-#: lib/hpay_front.php:347
+#: lib/hpay_front.php:371
 msgid "No valid payment respose was received. You can try again!"
 msgstr ""
 
-#: lib/hpay_admin.php:1541
+#: lib/hpay_admin.php:1551
 msgid "Non-HPay payment method orders/payment status "
 msgstr ""
 
-#: lib/hpay_admin.php:1428
+#: lib/hpay_admin.php:1438
 msgid "None"
 msgstr ""
 
-#: lib/hpay_admin.php:1631 lib/hpay_admin.php:1641
+#: lib/hpay_admin.php:1641 lib/hpay_admin.php:1649 lib/hpay_admin.php:1660
 msgid "NOT DETECTED"
 msgstr ""
 
-#: lib/hpay_admin.php:1604
+#: lib/hpay_admin.php:1614
 msgid "Not used"
 msgstr ""
 
@@ -906,11 +910,11 @@ msgid ""
 "to charge your card."
 msgstr ""
 
-#: lib/hpay_admin.php:1875
+#: lib/hpay_admin.php:1898
 msgid "Nothing"
 msgstr ""
 
-#: lib/hpay_admin.php:1452
+#: lib/hpay_admin.php:1462
 msgid "Once for each of the mappings"
 msgstr ""
 
@@ -918,32 +922,32 @@ msgstr ""
 msgid "one-time payment (added by HolestPay)"
 msgstr ""
 
-#: lib/hpay_admin.php:1646
+#: lib/hpay_admin.php:1668
 msgid ""
 "Only card-on-file|mit|recurring capable payment methods for subscriptions"
 msgstr ""
 
-#: lib/hpay_admin.php:1351
+#: lib/hpay_admin.php:1353
 msgid "Only for administrators (when testing)"
 msgstr ""
 
-#: lib/hpay_admin.php:1451
+#: lib/hpay_admin.php:1461
 msgid "Only once"
 msgstr ""
 
-#: lib/hpay_admin.php:1838
+#: lib/hpay_admin.php:1861
 msgid "Only one product per cart"
 msgstr ""
 
-#: lib/hpay_admin.php:1318
+#: lib/hpay_admin.php:1320
 msgid "Open HolestPay panel..."
 msgstr ""
 
-#: lib/hpay_admin.php:1426
+#: lib/hpay_admin.php:1436
 msgid "Order key modification"
 msgstr ""
 
-#: class/class-wc-hpay-payment-gateway.php:604
+#: class/class-wc-hpay-payment-gateway.php:622
 msgid "Order not found"
 msgstr ""
 
@@ -951,51 +955,51 @@ msgstr ""
 msgid "Order Now"
 msgstr ""
 
-#: lib/hpay_front.php:327
+#: lib/hpay_front.php:351
 msgid "Order UID"
 msgstr ""
 
-#: hpay_class.php:2130
+#: hpay_class.php:2074
 msgid "ORDER_ID_NOT_FOUND"
 msgstr ""
 
-#: hpay_class.php:2166
+#: hpay_class.php:2110
 msgid "ORDER_NOT_FOUND"
 msgstr ""
 
-#: hpay_checkout.php:273
+#: hpay_checkout.php:313
 msgid "Ordering as a company"
 msgstr ""
 
-#: hpay_checkout.php:267 lib/hpay_front.php:352
+#: hpay_checkout.php:307 lib/hpay_front.php:376
 msgid "Ordering as a company?"
 msgstr ""
 
-#: hpay_checkout.php:272
+#: hpay_checkout.php:312
 msgid "Ordering as a individual"
 msgstr ""
 
-#: lib/hpay_admin.php:1659
+#: lib/hpay_admin.php:1681
 msgid "Other custom WooCommerce plugins integrations"
 msgstr ""
 
-#: lib/hpay_admin.php:1356
+#: lib/hpay_admin.php:1358
 msgid "Override site language"
 msgstr ""
 
-#: lib/hpay_admin.php:1732
+#: lib/hpay_admin.php:1755
 msgid "Parent ID"
 msgstr ""
 
-#: hpay_class.php:2482
+#: hpay_class.php:2426
 msgid "Partial refund"
 msgstr ""
 
-#: hpay_class.php:2397
+#: hpay_class.php:2341
 msgid "Partial reserved amount capture/post-authorization"
 msgstr ""
 
-#: class/class-wc-hpay-payment-gateway.php:339
+#: class/class-wc-hpay-payment-gateway.php:357
 msgid "Pay"
 msgstr ""
 
@@ -1011,27 +1015,31 @@ msgstr ""
 msgid "PAY NOW..."
 msgstr ""
 
-#: lib/hpay_admin.php:1597
+#: hpay_checkout.php:187
+msgid "Payment"
+msgstr ""
+
+#: lib/hpay_admin.php:1607
 msgid "Payment at 'thank you' page"
 msgstr ""
 
-#: hpay_checkout.php:138
+#: hpay_checkout.php:178
 msgid "Payment canceled"
 msgstr ""
 
-#: lib/hpay_front.php:351
+#: lib/hpay_front.php:375
 msgid "Payment error"
 msgstr ""
 
-#: hpay_checkout.php:147 lib/hpay_front.php:350
+#: hpay_checkout.php:184 lib/hpay_front.php:374
 msgid "Payment failed"
 msgstr ""
 
-#: lib/hpay_front.php:345
+#: lib/hpay_front.php:369
 msgid "Payment failed, you can try again..."
 msgstr ""
 
-#: lib/hpay_front.php:348
+#: lib/hpay_front.php:372
 msgid "Payment has failed. You can try again!"
 msgstr ""
 
@@ -1040,73 +1048,77 @@ msgstr ""
 msgid "Payment link for order %s"
 msgstr ""
 
-#: hpay_checkout.php:140
+#: hpay_checkout.php:180
 msgid "Payment partially refunded"
 msgstr ""
 
-#: hpay_checkout.php:142
+#: hpay_checkout.php:182
 msgid "Payment refunded"
 msgstr ""
 
-#: hpay_checkout.php:144 lib/hpay_front.php:349
+#: lib/hpay_front.php:373
 msgid "Payment refused"
 msgstr ""
 
-#: lib/hpay_front.php:344
+#: lib/hpay_front.php:368
 msgid "Payment refused, you can try again..."
 msgstr ""
 
-#: lib/hpay_front.php:329
+#: lib/hpay_front.php:353
 msgid "Payment Status"
 msgstr ""
 
-#: hpay_checkout.php:132
+#: hpay_checkout.php:170
 msgid "Payment successful"
 msgstr ""
 
-#: hpay_checkout.php:134
+#: hpay_checkout.php:174
 msgid "Payment successful, pending amount capture"
 msgstr ""
 
-#: hpay_checkout.php:154
+#: hpay_checkout.php:194
 msgid ""
 "Payment unsuccessful, your account has not been debited. The most common "
 "cause is an incorrect card number, expiration date, or security code. Try "
 "again, and in case of repeated errors, contact your bank."
 msgstr ""
 
-#: lib/hpay_admin.php:1305
+#: hpay_checkout.php:172
+msgid "Payments started"
+msgstr ""
+
+#: lib/hpay_admin.php:1307
 msgid "PCI DSS COMPLIANT PAYMENT SERVICE PRIVIDER"
 msgstr ""
 
-#: lib/hpay_front.php:324
+#: lib/hpay_front.php:348
 msgid ""
 "Please confirm you want to remove payment token vault reference. If you have "
 "subscriptions with us they might get terminated if we fail to charge you for "
 "the next billing period."
 msgstr ""
 
-#: lib/hpay_admin.php:1227
+#: lib/hpay_admin.php:1229
 msgid "Please enter valid email!"
 msgstr ""
 
-#: lib/hpay_admin.php:764
+#: lib/hpay_admin.php:766
 msgid "Please select a customer vault payment token reference!"
 msgstr ""
 
-#: lib/hpay_admin.php:1212
+#: lib/hpay_admin.php:1214
 msgid "Please set all required fields!"
 msgstr ""
 
-#: lib/hpay_admin.php:1738
+#: lib/hpay_admin.php:1761
 msgid "Post type"
 msgstr ""
 
-#: lib/hpay_admin.php:1309
+#: lib/hpay_admin.php:1311
 msgid "Production / Live"
 msgstr ""
 
-#: lib/hpay_admin.php:1218
+#: lib/hpay_admin.php:1220
 msgid "Push order data to HPay?"
 msgstr ""
 
@@ -1114,53 +1126,53 @@ msgstr ""
 msgid "Quantity:"
 msgstr ""
 
-#: lib/hpay_front.php:340
+#: lib/hpay_front.php:364
 msgid "Reccuring interval"
 msgstr ""
 
-#: lib/hpay_front.php:341
+#: lib/hpay_front.php:365
 msgid "Reccuring interval value"
 msgstr ""
 
-#: lib/hpay_front.php:342
+#: lib/hpay_front.php:366
 msgid "Reccuring total payments"
 msgstr ""
 
-#: lib/hpay_front.php:336
+#: lib/hpay_front.php:360
 msgid "Refunded amount"
 msgstr ""
 
-#: lib/hpay_admin.php:1211
+#: lib/hpay_admin.php:1213
 msgid "Remove"
 msgstr ""
 
-#: hpay_checkout.php:64
+#: hpay_checkout.php:77
 msgid "remove"
 msgstr ""
 
-#: lib/hpay_admin.php:1851
+#: lib/hpay_admin.php:1874
 msgid "remove assigned by default"
 msgstr ""
 
-#: lib/hpay_admin.php:1850
+#: lib/hpay_admin.php:1873
 msgid "Remove assigned user role(s) on expiration"
 msgstr ""
 
-#: lib/hpay_admin.php:1214
+#: lib/hpay_admin.php:1216
 msgid "Remove custom integration?"
 msgstr ""
 
-#: lib/hpay_admin.php:709
+#: lib/hpay_admin.php:711
 msgid ""
 "Remove customer payment token vault reference? If you lose this vault "
 "reference you will no longer be able to charge the client by it."
 msgstr ""
 
-#: lib/hpay_front.php:326
+#: lib/hpay_front.php:350
 msgid "result"
 msgstr ""
 
-#: hpay_class.php:2316
+#: hpay_class.php:2260
 msgid "RESULT_ALREADY_ACCEPTED"
 msgstr ""
 
@@ -1168,55 +1180,63 @@ msgstr ""
 msgid "RSD"
 msgstr ""
 
-#: lib/hpay_admin.php:1662
+#: lib/hpay_admin.php:1684
 msgid "Run smart subscription plugin integration tool..."
 msgstr ""
 
-#: lib/hpay_admin.php:1308
+#: lib/hpay_admin.php:1310
 msgid "Sandbox / Testing"
 msgstr ""
 
-#: lib/hpay_admin.php:1714
+#: lib/hpay_admin.php:1737
 msgid "Save"
+msgstr ""
+
+#: hpay_checkout.php:105
+msgid "Save card token for faster checkout"
+msgstr ""
+
+#: hpay_checkout.php:107
+msgid "Save card token for future payments"
 msgstr ""
 
 #: lib/hpay_admin.php:342
 msgid "Save order to get 'Pay by link' link"
 msgstr ""
 
-#: lib/hpay_admin.php:1722
+#: lib/hpay_admin.php:1745
 msgid "search subsciption product by title or ID"
 msgstr ""
 
-#: lib/hpay_admin.php:1671
+#: lib/hpay_admin.php:1693
 msgid "See code/hooks integration reference..."
 msgstr ""
 
-#: lib/hpay_admin.php:1776 lib/hpay_admin.php:1807 lib/hpay_admin.php:1816
-#: lib/hpay_admin.php:1822 lib/hpay_admin.php:1825 lib/hpay_admin.php:1831
-#: lib/hpay_admin.php:1834
+#: lib/hpay_admin.php:1799 lib/hpay_admin.php:1830 lib/hpay_admin.php:1839
+#: lib/hpay_admin.php:1845 lib/hpay_admin.php:1848 lib/hpay_admin.php:1854
+#: lib/hpay_admin.php:1857
 msgid "select bound ref or enter fixed value"
 msgstr ""
 
-#: lib/hpay_admin.php:1848
+#: lib/hpay_admin.php:1871
 msgid "select bound ref or enter fixed value (comma separated)"
 msgstr ""
 
-#: lib/hpay_admin.php:1794
+#: lib/hpay_admin.php:1817
 msgid "select bound ref or enter fixed value - currency code or num code"
 msgstr ""
 
-#: lib/hpay_admin.php:1770 lib/hpay_admin.php:1781 lib/hpay_admin.php:1801
-#: lib/hpay_admin.php:1813
+#: lib/hpay_admin.php:1793 lib/hpay_admin.php:1804 lib/hpay_admin.php:1824
+#: lib/hpay_admin.php:1836
 msgid "select bound ref or enter fixed value - number"
 msgstr ""
 
-#: lib/hpay_admin.php:1819 lib/hpay_admin.php:1828 lib/hpay_admin.php:1839
-#: lib/hpay_admin.php:1842 lib/hpay_admin.php:1845
+#: lib/hpay_admin.php:1842 lib/hpay_admin.php:1851 lib/hpay_admin.php:1862
+#: lib/hpay_admin.php:1865 lib/hpay_admin.php:1868
 msgid "select bound ref or enter fixed value - yes|no"
 msgstr ""
 
-#: lib/hpay_admin.php:411 lib/hpay_admin.php:1224
+#: lib/hpay_admin.php:411 lib/hpay_admin.php:1226
 msgid "Send"
 msgstr ""
 
@@ -1224,7 +1244,7 @@ msgstr ""
 msgid "Send 'Pay by link' link to the customer..."
 msgstr ""
 
-#: hpay_checkout.php:322
+#: hpay_checkout.php:362
 msgid "Send order notifications also to these email addresses"
 msgstr ""
 
@@ -1240,88 +1260,88 @@ msgstr ""
 msgid "Serbian"
 msgstr ""
 
-#: hpay_checkout.php:64
+#: hpay_checkout.php:77
 msgid "set default"
 msgstr ""
 
-#: lib/hpay_admin.php:1357
+#: lib/hpay_admin.php:1359
 msgid "set if diffrent form site language"
 msgstr ""
 
-#: lib/hpay_admin.php:1891
+#: lib/hpay_admin.php:1914
 msgid ""
 "set number of days if you need delay to adjust something or pre-inform "
 "customer"
 msgstr ""
 
-#: lib/hpay_admin.php:1795
+#: lib/hpay_admin.php:1818
 msgid "Set only if it defers from the WooCommerce currency"
 msgstr ""
 
-#: lib/hpay_admin.php:1395 lib/hpay_admin.php:1413
+#: lib/hpay_admin.php:1397 lib/hpay_admin.php:1414
 msgid "set required"
 msgstr ""
 
-#: lib/hpay_admin.php:1519
+#: lib/hpay_admin.php:1529
 msgid "Set status for orders when partialy refunded"
 msgstr ""
 
-#: lib/hpay_admin.php:1508
+#: lib/hpay_admin.php:1518
 msgid "Set status for orders when refunded"
 msgstr ""
 
-#: lib/hpay_admin.php:1530
+#: lib/hpay_admin.php:1540
 msgid ""
 "Set status for orders when shipped (only if HolestPay shipping method is "
 "used)"
 msgstr ""
 
-#: lib/hpay_admin.php:1475
+#: lib/hpay_admin.php:1485
 msgid "Set status for orders/renewals when amount is pre-authorised/reserved"
 msgstr ""
 
-#: lib/hpay_admin.php:1486
+#: lib/hpay_admin.php:1496
 msgid ""
 "Set status for orders/renewals when awaiting payment (...like bank transfer, "
 "passive IPS, crypto-await...)"
 msgstr ""
 
-#: lib/hpay_admin.php:1464
+#: lib/hpay_admin.php:1474
 msgid "Set status for orders/renewals when paid"
 msgstr ""
 
-#: lib/hpay_admin.php:1497
+#: lib/hpay_admin.php:1507
 msgid "Set status for orders/renewals when VOID-ed"
 msgstr ""
 
-#: lib/hpay_admin.php:1565
+#: lib/hpay_admin.php:1575
 msgid ""
 "Set wooCommerce order status to trigger default fiscal/integartion method "
 "action from the site (if you have some other sort of automation configured "
 "on HPay double check if you need this)"
 msgstr ""
 
-#: lib/hpay_admin.php:1270
+#: lib/hpay_admin.php:1272
 msgid "Setup"
 msgstr ""
 
-#: lib/hpay_admin.php:570 lib/hpay_admin.php:697
+#: lib/hpay_admin.php:570 lib/hpay_admin.php:699
 msgid "Show transactions"
 msgstr ""
 
-#: lib/hpay_admin.php:1449
+#: lib/hpay_admin.php:1459
 msgid "Site order status may be changed:"
 msgstr ""
 
-#: lib/hpay_admin.php:1207
+#: lib/hpay_admin.php:1209
 msgid "Smart custom plugins product subscription detection setup"
 msgstr ""
 
-#: lib/hpay_front.php:333
+#: lib/hpay_front.php:357
 msgid "Status code for the 3D transaction"
 msgstr ""
 
-#: lib/hpay_admin.php:1614
+#: lib/hpay_admin.php:1624
 msgid "Subscriptions"
 msgstr ""
 
@@ -1331,30 +1351,34 @@ msgid ""
 "charges."
 msgstr ""
 
-#: lib/hpay_admin.php:1751
+#: lib/hpay_admin.php:1774
 msgid "This is a good sample"
 msgstr ""
 
-#: lib/hpay_admin.php:1226
+#: lib/hpay_admin.php:1228
 #, php-format
 msgid "This offer in link is limited to %s days."
 msgstr ""
 
-#: lib/hpay_admin.php:1217
+#: lib/hpay_admin.php:1219
 msgid ""
 "This order is not stored on HPay. Push it now so you could manage it from "
 "HPay?"
 msgstr ""
 
-#: lib/hpay_admin.php:1735
+#: hpay_checkout.php:102
+msgid "This payment is a part of payments arrangement."
+msgstr ""
+
+#: lib/hpay_admin.php:1758
 msgid "Title"
 msgstr ""
 
-#: lib/hpay_admin.php:1607
+#: lib/hpay_admin.php:1617
 msgid "to alter or make a new template, see "
 msgstr ""
 
-#: lib/hpay_front.php:331
+#: lib/hpay_front.php:355
 msgid "Transaction ID"
 msgstr ""
 
@@ -1362,56 +1386,56 @@ msgstr ""
 msgid "Transaction log"
 msgstr ""
 
-#: lib/hpay_front.php:330
+#: lib/hpay_front.php:354
 msgid "Transaction Status Code"
 msgstr ""
 
-#: lib/hpay_front.php:332
+#: lib/hpay_front.php:356
 msgid "Transaction Time"
 msgstr ""
 
-#: lib/hpay_admin.php:1812
+#: lib/hpay_admin.php:1835
 msgid "Trial duration/Schedule delay"
 msgstr ""
 
-#: lib/hpay_admin.php:1815
+#: lib/hpay_admin.php:1838
 msgid "Trial/Schedule delay unit day/week/month/year"
 msgstr ""
 
-#: lib/hpay_admin.php:1578
+#: lib/hpay_admin.php:1588
 msgid ""
 "Trigger for each of this statuses (otherwise once for the first to happen)"
 msgstr ""
 
-#: lib/hpay_front.php:343
+#: lib/hpay_front.php:367
 msgid "Try to pay again..."
 msgstr ""
 
-#: hpay.php:536
+#: hpay.php:591
 msgid "Unfortunately the payment has failed. Please try agian."
 msgstr ""
 
-#: hpay_class.php:2717
+#: hpay_class.php:2661
 msgid "UNVERIFIED_RESULT"
 msgstr ""
 
-#: lib/hpay_admin.php:1600
+#: lib/hpay_admin.php:1610
 msgid "Use dock layout for payment methods that support it"
 msgstr ""
 
-#: lib/hpay_admin.php:1432
+#: lib/hpay_admin.php:1442
 msgid "Use order id / not recommended"
 msgstr ""
 
-#: lib/hpay_admin.php:1434
+#: lib/hpay_admin.php:1444
 msgid "Use order number / not recommended"
 msgstr ""
 
-#: hpay_checkout.php:74
+#: hpay_checkout.php:111
 msgid "Use other ..."
 msgstr ""
 
-#: class/class-wc-hpay-payment-gateway.php:312
+#: class/class-wc-hpay-payment-gateway.php:328
 msgid "Use saved payment token vault reference"
 msgstr ""
 
@@ -1420,7 +1444,7 @@ msgstr ""
 msgid "Usual amount %s %s"
 msgstr ""
 
-#: lib/hpay_admin.php:1701
+#: lib/hpay_admin.php:1723
 msgid ""
 "WARNING (if you use subscriptions) You have not enabled any HolestPay "
 "payment method that allows an direct subscription charges or payment "
@@ -1429,7 +1453,7 @@ msgid ""
 "before a subsciption period expiration."
 msgstr ""
 
-#: lib/hpay_admin.php:1459
+#: lib/hpay_admin.php:1469
 #, php-format
 msgid ""
 "Warning: WooCommerce is set to cancel orders in '%s' status after %s minutes."
@@ -1440,32 +1464,32 @@ msgstr ""
 msgid "We can't accept amount you specified!"
 msgstr ""
 
-#: lib/hpay_admin.php:1873
+#: lib/hpay_admin.php:1896
 msgid "What is this regarding subscription?"
 msgstr ""
 
-#: lib/hpay_admin.php:1223
+#: lib/hpay_admin.php:1225
 msgid "With payment status change"
 msgstr ""
 
-#: lib/hpay_admin.php:1624
+#: lib/hpay_admin.php:1634
 msgid "WooCommerce & WooCommerce plugins integration"
 msgstr ""
 
-#: lib/hpay_admin.php:1446
+#: lib/hpay_admin.php:1456
 msgid "WooCommerce order status mappings"
 msgstr ""
 
-#: lib/hpay_admin.php:1616
+#: lib/hpay_admin.php:1626
 msgid "works only if the user is logged in"
 msgstr ""
 
-#: hpay_checkout.php:625 hpay_static.php:16 lib/hpay_admin.php:1220
-#: lib/hpay_admin.php:1350
+#: hpay_checkout.php:670 hpay_static.php:16 lib/hpay_admin.php:1222
+#: lib/hpay_admin.php:1352
 msgid "Yes"
 msgstr ""
 
-#: lib/hpay_admin.php:1787
+#: lib/hpay_admin.php:1810
 msgid "yes or 1 | no or 0 or not set"
 msgstr ""
 
@@ -1475,7 +1499,7 @@ msgid ""
 "your smarthone default camera app:"
 msgstr ""
 
-#: lib/hpay_admin.php:1305
+#: lib/hpay_admin.php:1307
 msgid ""
 "you don't need to perform quarter penetration testings, fill up SAQ "
 "questionnaires or adapt server to be PCI DSS complient merchant - all this "
@@ -1490,14 +1514,14 @@ msgstr ""
 msgid "Your saved payment token vault references"
 msgstr ""
 
-#: lib/hpay_admin.php:1430
+#: lib/hpay_admin.php:1440
 msgid "YYMMDD-order_id"
 msgstr ""
 
-#: lib/hpay_admin.php:1433
+#: lib/hpay_admin.php:1443
 msgid "yymmdd-order_number / not recommended"
 msgstr ""
 
-#: lib/hpay_admin.php:1431
+#: lib/hpay_admin.php:1441
 msgid "YYMMDDNNN-order_id"
 msgstr ""
