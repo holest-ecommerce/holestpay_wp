@@ -7,21 +7,29 @@ if(!defined("HPAY_PRODUCTION_URL")){
 trait HPay_Core_Static {
 	
 	public static function hpaylang(){
-		
-		$olang = trim(HPay_Core::instance()->getSetting("override_language",""));
-		if($olang){
-			return $olang;
+		try{
+			$olang = trim(HPay_Core::instance()->getSetting("override_language",""));
+			if($olang){
+				return $olang;
+			}
+
+			if(HPay_Core::instance()->getPOSSetting("FixedLanguage")){
+				return HPay_Core::instance()->getPOSSetting("FixedLanguage");
+			}
+
+			if(stripos(__("Serbian","holestpay"),"С") !== false || stripos(__("Yes","holestpay"),"Д") !== false){
+				return "rs-cyr";
+			}
+			
+			if(stripos(__("Serbia","woocommerce"),"С") !== false || stripos(__("Yes","woocommerce"),"Д") !== false){
+				return "rs-cyr";
+			}
+			
+			return substr(strtolower(str_ireplace("sr","rs", get_locale())),0,2);
+		}catch(Throwable $ex){
+			hpay_write_log("error",$ex);
+			return "en";
 		}
-		
-		if(stripos(__("Serbian","holestpay"),"С") !== false || stripos(__("Yes","holestpay"),"Д") !== false){
-			return "rs-cyr";
-		}
-		
-		if(stripos(__("Serbia","woocommerce"),"С") !== false || stripos(__("Yes","woocommerce"),"Д") !== false){
-			return "rs-cyr";
-		}
-		
-		return substr(strtolower(str_ireplace("sr","rs", get_locale())),0,2);
 	}
 	
 	public static function instance(){
