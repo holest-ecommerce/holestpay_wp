@@ -3,11 +3,11 @@
  * Plugin Name: HolestPay Payments Plugin WooCommerce or Standalone 
  * Plugin URI:
  * Description: HolestPay payment system supports integration with most of the banks in the Adriatic region. Ovaj softver je vlasnistvo HOLEST E-COMMERCE D.O.O. Neovlašćenim korišćenjem ovog softver-a podležete riziku od zakonske kazne.
- * Version: 1.1.159
+ * Version: 1.1.161
  * Requires at least: 4.0
  * WC requires at least: 4.2.0
- * WC tested up to: 7.4.0
- * Tested up to: 6.1.1
+ * WC tested up to: 11.0.1
+ * Tested up to: 7.1.0
  * Author: HOLEST E-COMMERCE
  * Author URI: https://ecommerce.holest.com
  * Text Domain: holestpay
