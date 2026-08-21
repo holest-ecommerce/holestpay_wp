@@ -206,9 +206,9 @@
 			
 			if(HolestPayCheckout.cart.shipping_method){
 				try{
-					if(!s_adapt_needed && prev_hpay_shipping_method && prev_hpay_shipping_method.HPaySiteMethodId == HolestPayCheckout.cart.shipping_method){
-						return;	
-					}
+					// if(!s_adapt_needed && prev_hpay_shipping_method && prev_hpay_shipping_method.HPaySiteMethodId == HolestPayCheckout.cart.shipping_method){
+						// return;	
+					// }
 					
 					HPayInit(async function(client){ 
 					    let smethod = HPay.POS.shipping.find(s => s.HPaySiteMethodId == HolestPayCheckout.cart.shipping_method);

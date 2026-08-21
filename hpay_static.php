@@ -195,7 +195,7 @@ trait HPay_Core_Static {
 		$from   = strtoupper(trim($from)); 
 		$to     = strtoupper(trim($to)); 
 		
-		if($from == $to){
+		if($from == $to || !$from || !$to){
 			return 1.00;	
 		}
 		
