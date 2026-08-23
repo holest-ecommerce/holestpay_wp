@@ -234,8 +234,10 @@ class WC_HPay_Shipping_Method extends WC_Shipping_Method {
 					}
 				}
 				
-				if($this->_method_data["ShippingCurrency"] != $hcart["order_currency"] || $free_above_order_amount !== null){
-					$exchnage_rate = HPay_Core::getMerchantExchnageRate($hcart["order_currency"], $this->_method_data["ShippingCurrency"]);
+				$shipping_currency = isset($this->_method_data["ShippingCurrency"]) ? $this->_method_data["ShippingCurrency"] : "";
+				$order_currency = isset($hcart["order_currency"]) ? $hcart["order_currency"] : "";
+				if($shipping_currency !== "" && ($shipping_currency != $order_currency || $free_above_order_amount !== null)){
+					$exchnage_rate = HPay_Core::getMerchantExchnageRate($order_currency, $shipping_currency);
 					if(!$exchnage_rate)
 						$exchnage_rate = 1.00;
 				}
