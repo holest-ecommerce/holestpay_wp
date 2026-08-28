@@ -70,7 +70,7 @@ trait HPay_Core_Woo {
 					$hpay_status = $order->get_meta("_hpay_status");
 					if(!$hpay_status)
 						$hpay_status = "";
-					if(strpos($hpay_status,"PAID") === false && strpos($hpay_status,"SUCCESS") === false && strpos($hpay_status,"REFUNDED") === false){
+					if(strpos($hpay_status,"PAID") === false && strpos($hpay_status,"SUCCESS") === false && !hpay_status_has_full_refund($hpay_status)){
 						$allcaps['pay_for_order'] = true;
 					}
 				} 
@@ -220,11 +220,11 @@ trait HPay_Core_Woo {
 								
 								foreach($data["order_billing"] as $key => $val){
 									if($is_company_field && $key == "is_company"){
-										WC()->session->set( "__blockc_billing_" . $is_company_field, $val);
+										WC()->session->set( "__blockc_billing_" . hpay_billing_field_key($is_company_field), $val);
 									}else if($company_tax_id_field && $key == "company_tax_id"){
-										WC()->session->set( "__blockc_billing_" . $company_tax_id_field, $val);
+										WC()->session->set( "__blockc_billing_" . hpay_billing_field_key($company_tax_id_field), $val);
 									}else if($company_reg_id_field && $key == "company_reg_id"){
-										WC()->session->set( "__blockc_billing_" . $company_reg_id_field, $val);
+										WC()->session->set( "__blockc_billing_" . hpay_billing_field_key($company_reg_id_field), $val);
 									}else if($key == "company"){
 										try{
 											WC()->cart->get_customer()->set_billing_company($val); 
@@ -480,6 +480,8 @@ trait HPay_Core_Woo {
 				$hpay_status = $hpay_resp["status"];
 			}
 			
+			$hpay_status = hpay_normalize_hpay_status($hpay_status);
+			
 			if(isset($hpay_mapped_status_dict[$order->get_id()])){
 				$hpay_mapped_status_track = $hpay_mapped_status_dict[$order->get_id()];
 			}
@@ -506,9 +508,9 @@ trait HPay_Core_Woo {
 				$wc_order_status = $this->getSetting("woo_status_map_paid",""); 
 				$hpay_mapped_status_track = array("woo_status_map_paid",$wc_order_status);
 			}else if(stripos($hpay_status,"RESERVE") !== false || stripos($hpay_status,"PAYING") !== false){
-				$wc_order_status = $this->getSetting("woo_status_map_reserve",""); 
-				$hpay_mapped_status_track = array("woo_status_map_reserve",$wc_order_status);
-			}else if(stripos($hpay_status,"AWAITING") !== false){
+				$wc_order_status = $this->getSetting("woo_status_map_reserved",""); 
+				$hpay_mapped_status_track = array("woo_status_map_reserved",$wc_order_status);
+			}else if(stripos($hpay_status,"AWAITING") !== false || stripos($hpay_status,"OBLIGATED") !== false){
 				$wc_order_status = $this->getSetting("woo_status_map_awaiting",""); 
 				$hpay_mapped_status_track = array("woo_status_map_awaiting",$wc_order_status);
 			}else if(stripos($hpay_status,"VOID") !== false){
@@ -517,7 +519,7 @@ trait HPay_Core_Woo {
 			}else if(stripos($hpay_status,"PARTIALLY-REFUNDED") !== false){
 				$wc_order_status = $this->getSetting("woo_status_map_partial_refund",""); 
 				$hpay_mapped_status_track = array("woo_status_map_partial_refund",$wc_order_status);
-			}else if(stripos($hpay_status,"REFUND") !== false){
+			}else if(hpay_status_has_full_refund($hpay_status)){
 				$wc_order_status = $this->getSetting("woo_status_map_refund",""); 
 				$hpay_mapped_status_track = array("woo_status_map_refund",$wc_order_status);
 			}
@@ -607,6 +609,8 @@ trait HPay_Core_Woo {
 				if(isset($hpay_resp["status"])){
 					$hpay_status = $hpay_resp["status"];
 				}
+				
+				$hpay_status = hpay_normalize_hpay_status($hpay_status);
 				
 				$current_hpay_pay_status = $this->orderHpayPaymentStatus($order);
 				

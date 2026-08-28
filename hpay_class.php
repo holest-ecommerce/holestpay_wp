@@ -30,7 +30,7 @@ class HPay_Core {
 	    "enabled"                     => 1,
 		"workmode"                    => "woocommerce", 
 		"woo_status_map_paid"         => "wc-completed",
-		"woo_status_map_reserve"      => "wc-on-hold",
+		"woo_status_map_reserved"     => "wc-on-hold",
 		"woo_status_map_awaiting"     => "wc-on-hold",
 		"woo_status_map_void"         => "wc-cancelled",
 		"woo_status_map_refund"       => "wc-refunded",
@@ -383,11 +383,16 @@ class HPay_Core {
 		}
 		
 		$this->_settings = array_merge(array(
-			"enabled"           => 0, 
+			"enabled"           => 0,
 			"workmode"          => "woocommerce",
 			"manage_all_orders" => 1
 		), get_option("holestpay_settings", array()));
-		
+
+		// Migrate legacy typo key woo_status_map_reserve → woo_status_map_reserved
+		if(!isset($this->_settings["woo_status_map_reserved"]) && isset($this->_settings["woo_status_map_reserve"])){
+			$this->_settings["woo_status_map_reserved"] = $this->_settings["woo_status_map_reserve"];
+		}
+
 		$this->applyDefaultSettings($this->_settings);
 		
 		if(!$this->_settings){
@@ -701,7 +706,7 @@ class HPay_Core {
 						$transaction_pay_status =  "CANCELED";
 					}else if(stripos($resp["status"],"PARTIALLY-REFUNDED") !== false){
 						$transaction_pay_status =  "PARTIALLY-REFUNDED";
-					}else if(stripos($resp["status"],"REFUND") !== false){
+					}else if(hpay_status_has_full_refund($resp["status"])){
 						$transaction_pay_status =  "REFUNDED";
 					}else{
 						$transaction_pay_status = $this->extractPaymentStatus($resp["status"]);
@@ -1404,20 +1409,20 @@ class HPay_Core {
 				$order = hpay_get_order($order_id);
 			}
 			if($order && stripos($order->get_payment_method(),"hpaypayment-") !== false){
-				$hpay_status = $order->get_meta("_hpay_status");
+				$hpay_status = hpay_normalize_hpay_status($order->get_meta("_hpay_status"));
 				if($hpay_status){
 					$wc_order_status = null;
 					if(stripos($hpay_status,"PAID") !== false || stripos($hpay_status,"SUCCESS") !== false){
 						$wc_order_status = $this->getSetting("woo_status_map_paid",""); 
 					}else if(stripos($hpay_status,"RESERVE") !== false || stripos($hpay_status,"PAYING") !== false){
-						$wc_order_status = $this->getSetting("woo_status_map_reserve",""); 
-					}else if(stripos($hpay_status,"AWAITING") !== false || stripos($hpay_status,"OBLIGARED") !== false){
+						$wc_order_status = $this->getSetting("woo_status_map_reserved",""); 
+					}else if(stripos($hpay_status,"AWAITING") !== false || stripos($hpay_status,"OBLIGATED") !== false){
 						$wc_order_status = $this->getSetting("woo_status_map_awaiting",""); 
 					}else if(stripos($hpay_status,"VOID") !== false){
 						$wc_order_status = $this->getSetting("woo_status_map_void",""); 
 					}else if(stripos($hpay_status,"PARTIALLY-REFUNDED") !== false){
 						$wc_order_status = $this->getSetting("woo_status_map_partial_refund",""); 
-					}else if(stripos($hpay_status,"REFUND") !== false){
+					}else if(hpay_status_has_full_refund($hpay_status)){
 						$wc_order_status = $this->getSetting("woo_status_map_refund",""); 
 					}
 					
@@ -1564,7 +1569,7 @@ class HPay_Core {
 				}
 				
 				$return_result = true;
-				if(strpos($result["status"],"SUCCESS") !== false || strpos($result["status"],"PAID") !== false || strpos($result["status"],"PAYING") !== false || strpos($result["status"],"RESERVED") !== false || strpos($result["status"], "AWAITING") !== false){
+				if(strpos($result["status"],"SUCCESS") !== false || strpos($result["status"],"PAID") !== false || strpos($result["status"],"PAYING") !== false || strpos($result["status"],"RESERVED") !== false || strpos($result["status"], "AWAITING") !== false || strpos($result["status"], "OBLIGATED") !== false){
 					
 					if(!$is_webhook){
 						hpay_write_log($hpay_log_file, "\r\n<!-- acceptResult PAID/SUCCESS/RESERVED/AWAITING -->\r\n", FILE_APPEND);
@@ -1632,7 +1637,11 @@ class HPay_Core {
 					if(!$hpay_doing_order_store){
 						if(stripos($order->get_payment_method(),"hpaypayment-") !== false){
 							$wc_ostat = $this->shouldSetStatus($result, $order);
-							if(!$order->has_status($wc_ostat) && !$this->wc_order_has_status_immediate($order->get_id(), $wc_ostat)){
+							if($wc_ostat){
+								if(!$order->has_status($wc_ostat) && !$this->wc_order_has_status_immediate($order->get_id(), $wc_ostat)){
+									$this->setOrderStatus($order, $wc_ostat);
+								}
+							}else if(!$order->has_status('failed') && !$this->wc_order_has_status_immediate($order->get_id(), 'failed')){
 								$this->setOrderStatus($order,'failed', __( 'HPAY payment failed', 'holestpay' ) . " " . $result["transaction_uid"]);
 							}
 						}
@@ -2694,7 +2703,7 @@ class HPay_Core {
 								}
 							}
 						}
-					}else if(strpos($resp["status"],"PAYMENT:RESERVED") !== false || strpos($resp["status"],"PAYMENT:PAYING") !== false || strpos($resp["status"],"PAYMENT:AWAITING") !== false){
+					}else if(strpos($resp["status"],"PAYMENT:RESERVED") !== false || strpos($resp["status"],"PAYMENT:PAYING") !== false || strpos($resp["status"],"PAYMENT:AWAITING") !== false || strpos($resp["status"],"PAYMENT:OBLIGATED") !== false){
 						
 						if(stripos($order->get_payment_method(),"hpaypayment-") !== false){
 							$wc_ostat = $this->shouldSetStatus($resp, $order);
@@ -2983,7 +2992,7 @@ class HPay_Core {
 						}
 						?>
 					</div>
-					<div style='padding: 0 25px;'>&nbsp;</div>
+					<div style='padding: 0 25px;' class='hpay-footer-separator hpay-footer-separator-left'>&nbsp;</div>
 					<div class="hpay-footer-branding-bank" style='display:flex'>
 						<?php
 							if(isset($hpay_pos_parameters["Logotypes Banks"]) && trim($hpay_pos_parameters["Logotypes Banks"])){
@@ -3005,7 +3014,7 @@ class HPay_Core {
 							}
 						?>
 					</div>
-					<div style='padding: 0 10px;'>&nbsp;</div>
+					<div style='padding: 0 10px;' class='hpay-footer-separator hpay-footer-separator-right'>&nbsp;</div>
 					<div class="hpay-footer-branding-3ds" style='display:flex'>
 						<?php
 							if(isset($hpay_pos_parameters["Logotypes 3DS"]) && trim($hpay_pos_parameters["Logotypes 3DS"])){

@@ -113,6 +113,58 @@ if(!function_exists("hpay_read_server_parm")){
    }
 }
 
+if(!function_exists("hpay_billing_field_key")){
+	/**
+	 * Bare checkout billing field key (no billing_ prefix).
+	 * Settings may store either "company" or "billing_company".
+	 */
+	function hpay_billing_field_key($field){
+		$field = trim((string)$field);
+		if($field === ""){
+			return "";
+		}
+		while(stripos($field, "billing_") === 0){
+			$field = substr($field, 8);
+		}
+		return $field;
+	}
+}
+
+if(!function_exists("hpay_billing_field_name")){
+	/** WC request/name key with exactly one billing_ prefix. */
+	function hpay_billing_field_name($field){
+		$key = hpay_billing_field_key($field);
+		return $key === "" ? "" : ("billing_" . $key);
+	}
+}
+
+if(!function_exists("hpay_normalize_hpay_status")){
+	/** Canonicalize known HPay status spelling variants before matching. */
+	function hpay_normalize_hpay_status($status){
+		if(!is_string($status) || $status === ""){
+			return $status;
+		}
+		return str_ireplace("@SUBMITTED", "@SUBMITED", $status);
+	}
+}
+
+if(!function_exists("hpay_status_has_full_refund")){
+	/**
+	 * True for REFUND / REFUNDED only — not PARTIALLY-REFUNDED
+	 * (strpos "REFUND" alone would also match PARTIALLY-REFUNDED).
+	 */
+	function hpay_status_has_full_refund($status){
+		$status = (string)$status;
+		if($status === ""){
+			return false;
+		}
+		if(stripos($status, "PARTIALLY-REFUNDED") !== false){
+			return false;
+		}
+		return stripos($status, "REFUND") !== false;
+	}
+}
+
 if(!function_exists("hpay_return_false")){
 	function hpay_return_false($arg1 = null,$arg2 = null,$arg3 = null,$arg4 = null,$arg5 = null,$arg6 = null,$arg7 = null){
 		return false;

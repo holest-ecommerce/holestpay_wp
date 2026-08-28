@@ -55,11 +55,11 @@ trait HPay_Core_Data {
 			
 		if(WC()->checkout){
 			if($data["company_tax_id_field"])
-				$data["company_tax_id"] = hpay_get_woo_checkout_value('billing_' .$data["company_tax_id_field"],true);
+				$data["company_tax_id"] = hpay_get_woo_checkout_value(hpay_billing_field_name($data["company_tax_id_field"]),true);
 			if($data["company_reg_id_field"])
-				$data["company_reg_id"] = hpay_get_woo_checkout_value('billing_' .$data["company_reg_id_field"],true);
+				$data["company_reg_id"] = hpay_get_woo_checkout_value(hpay_billing_field_name($data["company_reg_id_field"]),true);
 			if($data["is_company_field"]){
-				$val = hpay_get_woo_checkout_value('billing_' .$data["is_company_field"],true);
+				$val = hpay_get_woo_checkout_value(hpay_billing_field_name($data["is_company_field"]),true);
 				if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos("{$val}","comp") !== false){
 					$data["is_company"] = 1;
 				}else{
@@ -74,15 +74,15 @@ trait HPay_Core_Data {
 		// when is_checkout() returns false during a REST/Store API call).
 		if(WC()->session){
 			if($data["company_tax_id_field"]){
-				$v = WC()->session->get("__blockc_billing_" . $data["company_tax_id_field"], null);
+				$v = WC()->session->get("__blockc_billing_" . hpay_billing_field_key($data["company_tax_id_field"]), null);
 				if($v !== null) $data["company_tax_id"] = $v;
 			}
 			if($data["company_reg_id_field"]){
-				$v = WC()->session->get("__blockc_billing_" . $data["company_reg_id_field"], null);
+				$v = WC()->session->get("__blockc_billing_" . hpay_billing_field_key($data["company_reg_id_field"]), null);
 				if($v !== null) $data["company_reg_id"] = $v;
 			}
 			if($data["is_company_field"]){
-				$val = WC()->session->get("__blockc_billing_" . $data["is_company_field"], null);
+				$val = WC()->session->get("__blockc_billing_" . hpay_billing_field_key($data["is_company_field"]), null);
 				if($val !== null){
 					if($val == "1" || $val == "on" || $val == "true" || $val == "yes" || strpos("{$val}","comp") !== false){
 						$data["is_company"] = 1;
@@ -385,9 +385,9 @@ trait HPay_Core_Data {
 				"UI"               => array(
 					"checkout_fields" => array(
 						"company" => "#billing_company",
-						"company_reg_id" => $company_reg_id_field ? ("#billing_" . $company_reg_id_field) : "",
-						"company_tax_id" => $company_tax_id_field ? ("#billing_" . $company_tax_id_field) : "",
-						"is_company" => $is_company_field ? ("input[name='billing_" . $is_company_field . "'],select[name='billing_" . $is_company_field . "']") : ""
+						"company_reg_id" => $company_reg_id_field ? ("#" . hpay_billing_field_name($company_reg_id_field)) : "",
+						"company_tax_id" => $company_tax_id_field ? ("#" . hpay_billing_field_name($company_tax_id_field)) : "",
+						"is_company" => $is_company_field ? ("input[name='" . hpay_billing_field_name($is_company_field) . "'],select[name='" . hpay_billing_field_name($is_company_field) . "']") : ""
 					)
 				)
 			);

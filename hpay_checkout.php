@@ -182,7 +182,7 @@ trait HPay_Core_Checkout{
 					echo esc_attr__("Payment canceled","holestpay");
 				}else if(stripos($transaction_pay_status, "PARTIALLY-REFUNDED") !== false){
 					echo esc_attr__("Payment partially refunded","holestpay");	
-				}else if(stripos($transaction_pay_status, "REFUNDED") !== false){
+				}else if(hpay_status_has_full_refund($transaction_pay_status)){
 					echo esc_attr__("Payment refunded","holestpay");	
 				}else if(stripos($transaction_pay_status, "REFUSED") !== false || stripos($transaction_pay_status, "FAILED") !== false || stripos($transaction_pay_status, "EXPIRED") !== false){
 					echo esc_attr__("Payment failed","holestpay");
@@ -580,7 +580,7 @@ trait HPay_Core_Checkout{
 			if($this->getSetting("is_company","") == 1){
 				$is_company_field =  "billing_is_company";
 			}else if($this->getSetting("is_company_field","")){
-				$is_company_field =  "billing_" . $this->getSetting("is_company_field","");
+				$is_company_field =  hpay_billing_field_name($this->getSetting("is_company_field",""));
 			}
 			if($is_company_field){
 				$val = hpay_read_request_parm($is_company_field, hpay_get_woo_checkout_value($is_company_field)); 
@@ -631,7 +631,7 @@ trait HPay_Core_Checkout{
 				
 				if($this->getSetting("company_tax_id","") != 1 && $this->getSetting('tax_id_field_required', false) == 1){
 					if($this->getSetting("tax_id_field","")){
-						if($this->getSetting("tax_id_field","") == $fname){
+						if(hpay_billing_field_name($this->getSetting("tax_id_field","")) == $fname || $this->getSetting("tax_id_field","") == $fname){
 							if($is_company_val === 0 || is_admin() ){
 								$flddef["required"] = false;
 							}else{
@@ -643,7 +643,7 @@ trait HPay_Core_Checkout{
 				
 				if($this->getSetting("company_reg_id","") != 1 && $this->getSetting('reg_id_field_required', false) == 1){
 					if($this->getSetting("reg_id_field","")){
-						if($this->getSetting("reg_id_field","") == $fname){
+						if(hpay_billing_field_name($this->getSetting("reg_id_field","")) == $fname || $this->getSetting("reg_id_field","") == $fname){
 							if($is_company_val === 0 || is_admin() ){
 								$flddef["required"] = false;
 							}else{

@@ -413,3 +413,29 @@ body.is-company-order-no [hpay_checkout_field='company_reg_id']{
 .woocommerce-order:has(.hpay-transaction-info[pay_status='RESERVED']) .pay.order-actions-button{
 	display:none;
 }
+
+.hpay_footer_branding,
+.hpay-footer-branding {
+	flex-wrap: wrap !important;
+	max-width: 100% !important;
+	gap: 10px 16px;
+	padding: 8px 12px !important;
+}
+
+.hpay_footer_branding > div,
+.hpay_footer_branding [class*="hpay-footer-branding"] {
+	flex-wrap: wrap !important;
+	max-width: 100% !important;
+	justify-content: center;
+}
+
+.hpay_footer_branding img {
+	max-width: 25%;
+	height: auto;
+}
+
+@media (max-width: 767px) {
+	.hpay_footer_branding .hpay-footer-separator {
+		display: none !important;
+	}
+}

@@ -325,7 +325,7 @@ class HPay_Admin{
 			$hpay_status = $order->get_meta("_hpay_status");
 			if(!$hpay_status)
 				$hpay_status = "";
-			if(strpos($hpay_status,"PAID") === false && strpos($hpay_status,"SUCCESS") === false && strpos($hpay_status,"REFUNDED") === false){
+			if(strpos($hpay_status,"PAID") === false && strpos($hpay_status,"SUCCESS") === false && !hpay_status_has_full_refund($hpay_status)){
 				$pbl = true;
 			}
 		}
@@ -613,7 +613,7 @@ class HPay_Admin{
 										$transaction_pay_status =  "CANCELED";
 									}else if(stripos($resp["status"],"PARTIALLY-REFUNDED") !== false){
 										$transaction_pay_status =  "PARTIALLY-REFUNDED";
-									}else if(stripos($resp["status"],"REFUNDED") !== false){
+									}else if(hpay_status_has_full_refund($resp["status"])){
 										$transaction_pay_status =  "REFUNDED";
 									}else{
 										$transaction_pay_status = HPay_Core::instance()->extractPaymentStatus($resp["status"]);
@@ -877,7 +877,7 @@ class HPay_Admin{
 								
 								$hmethod->acceptResult($order, $resp);
 								
-								if(strpos($resp["status"],"SUCCESS") !== false || strpos($resp["status"],"PAID") !== false || strpos($resp["status"],"PAYING") !== false || strpos($resp["status"],"RESERVED") !== false || strpos($resp["status"], "AWAITING") !== false){
+								if(strpos($resp["status"],"SUCCESS") !== false || strpos($resp["status"],"PAID") !== false || strpos($resp["status"],"PAYING") !== false || strpos($resp["status"],"RESERVED") !== false || strpos($resp["status"], "AWAITING") !== false || strpos($resp["status"], "OBLIGATED") !== false){
 									$last_success = $resp;
 									break;
 								}else{
