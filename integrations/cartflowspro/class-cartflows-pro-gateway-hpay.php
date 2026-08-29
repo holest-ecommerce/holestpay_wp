@@ -54,8 +54,7 @@ class Cartflows_Pro_Gateway_Hpay {
 	
 	public function before_payment_order_status($order_status, $order, $hpay_method){
 		$hpay_payment_status = HPay_Core::instance()->orderHpayPaymentStatus($order);
-		$already_settled = in_array($hpay_payment_status, array("PAID","RESERVED","SUCCESS","AWAITING","VOID","REFUND","REFUNDED"));
-		if(!$already_settled){
+		if(!in_array($hpay_payment_status,array("PAID","RESERVED","SUCCESS","AWAITING","REFUND","VOID"))){
 			$order_status = wcf_pro()->front->set_upsell_return_new_order_status( $order_status, $order );
 			return $order_status;
 		}

@@ -750,7 +750,7 @@ select.hpay_this_field_is:not([selectedvalue='']){
 }
 
 .hpay-vault:after{
-	content:'/ ' attr(token_time);
+	content:attr(vault_exp) ' | \2193' attr(token_time) ;
 	position:absolute;
 	margin-top:-8px;
 	font-size:9px;
