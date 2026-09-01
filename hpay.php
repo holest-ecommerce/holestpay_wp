@@ -18,7 +18,13 @@ try {
 	require_once(__DIR__ . DIRECTORY_SEPARATOR . "hpay_checkout.php");
 	require_once(__DIR__ . DIRECTORY_SEPARATOR . "hpay_email.php");
 }catch (Throwable $ex) {
-	return;	
+	try{
+		if(function_exists('hpay_index_restore_ubak_files')){
+			hpay_index_restore_ubak_files(__DIR__);
+		}
+	}catch(Throwable $e){}
+	// Re-throw so index.php catch can store fatal notice without taking down WP.
+	throw $ex;
 }
 
 if(!defined('HPAY_LOG_DIR')){
@@ -483,18 +489,21 @@ if(!function_exists('hpay_get_woo_checkout_value')){
 	}
 }
 
-add_filter( 'wp_redirect_status', 'hpay_on_wp_redirect', 999, 2);
+try{
+	add_filter( 'wp_redirect_status', 'hpay_on_wp_redirect', 999, 2);
 
-add_action( 'before_woocommerce_init', function() {
-	try{
-		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', HPAY_PLUGIN_FILE , true );
+	add_action( 'before_woocommerce_init', function() {
+		try{
+			if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', HPAY_PLUGIN_FILE , true );
+			}
+		}catch(Throwable $ex){
+			//
 		}
-	}catch(Throwable $ex){
-		//
-	}
-});
-
+	});
+}catch(Throwable $ex){
+	// Never break WP bootstrap for hook registration
+}
 function HPay_init(){
 	try{
 		global $__hpay_init_done, $hpay_pm_class_mapper, $hpay_sm_class_mapper, $hpay_fm_class_mapper;
@@ -605,18 +614,22 @@ function HPay_init(){
 }
 
 function hpay_woocommerce_add_payment_methods($methods){
-	global $hpay_pm_class_mapper;
-	foreach($hpay_pm_class_mapper as $placeholder_class => $pmref){
-		$methods[] = $pmref["alias"];
-	}
+	try{
+		global $hpay_pm_class_mapper;
+		foreach($hpay_pm_class_mapper as $placeholder_class => $pmref){
+			$methods[] = $pmref["alias"];
+		}
+	}catch(Throwable $ex){}
 	return $methods;
 }
 
 function hpay_woocommerce_add_shipping_methods($methods){
-	global $hpay_sm_class_mapper;
-	foreach($hpay_sm_class_mapper as $placeholder_class => $smref){
-		$methods[$smref["id"]] = $smref["alias"];
-	}
+	try{
+		global $hpay_sm_class_mapper;
+		foreach($hpay_sm_class_mapper as $placeholder_class => $smref){
+			$methods[$smref["id"]] = $smref["alias"];
+		}
+	}catch(Throwable $ex){}
 	return $methods;
 }
 
@@ -631,20 +644,31 @@ function hpay_woo_order_type($order_id){
 	}
 }
 
-require_once(__DIR__ . DIRECTORY_SEPARATOR . "hpay_class.php");
+try{
+	require_once(__DIR__ . DIRECTORY_SEPARATOR . "hpay_class.php");
 
-add_filter( 'woocommerce_shipping_methods', 'hpay_woocommerce_add_shipping_methods' );
-add_filter( 'woocommerce_payment_gateways', 'hpay_woocommerce_add_payment_methods' );
-add_action( 'woocommerce_blocks_loaded', 'hpay_woocommerce_gateway_block_support' );
+	add_filter( 'woocommerce_shipping_methods', 'hpay_woocommerce_add_shipping_methods' );
+	add_filter( 'woocommerce_payment_gateways', 'hpay_woocommerce_add_payment_methods' );
+	add_action( 'woocommerce_blocks_loaded', 'hpay_woocommerce_gateway_block_support' );
 
-//INIT/////////////////////////////////////////////////////////////////////////////////////
-HPay_Core::instance();
-///////////////////////////////////////////////////////////////////////////////////////////
-require_once(__DIR__ . DIRECTORY_SEPARATOR . "integrations" . DIRECTORY_SEPARATOR . "init_integrations.php");
-///////////////////////////////////////////////////////////////////////////////////////////
+	//INIT/////////////////////////////////////////////////////////////////////////////////////
+	HPay_Core::instance();
+	///////////////////////////////////////////////////////////////////////////////////////////
+	require_once(__DIR__ . DIRECTORY_SEPARATOR . "integrations" . DIRECTORY_SEPARATOR . "init_integrations.php");
+	///////////////////////////////////////////////////////////////////////////////////////////
 
-add_action( 'plugins_loaded', 'hpay_on_plugins_loaded' );
+	add_action( 'plugins_loaded', 'hpay_on_plugins_loaded' );
+}catch(Throwable $ex){
+	try{
+		if(function_exists('hpay_index_restore_ubak_files')){
+			hpay_index_restore_ubak_files(__DIR__);
+		}
+	}catch(Throwable $e){}
+	throw $ex;
+}
+
 function hpay_on_plugins_loaded() {
+	try{
 	
 	if(strpos(hpay_read_server_parm("REQUEST_URI",""),"wp-admin") === false){
 		if(strpos(hpay_read_server_parm("REQUEST_URI",""),"order=") !== false || hpay_read_get_parm("key") || hpay_read_get_parm("order-received")){
@@ -670,33 +694,58 @@ function hpay_on_plugins_loaded() {
 		die;
 	}
 	
+	}catch(Throwable $ex){
+		try{
+			if(function_exists('hpay_write_log')){
+				hpay_write_log('error', $ex);
+			}
+		}catch(Throwable $e){}
+	}
 }
 
 function hpay_fix_nazalost_message( $translated_text, $untranslated_text, $domain ) {
-    if ( 'woocommerce' === $domain && strlen($translated_text) > 50) {
-		if(stripos($untranslated_text,"originating bank/merchant has declined your transaction") !== false){
-			return __("Unfortunately the payment has failed. Please try agian.","holestpay");
+	try{
+		if ( 'woocommerce' === $domain && strlen($translated_text) > 50) {
+			if(stripos($untranslated_text,"originating bank/merchant has declined your transaction") !== false){
+				return __("Unfortunately the payment has failed. Please try agian.","holestpay");
+			}
 		}
-    }
+	}catch(Throwable $ex){}
 	return $translated_text;
 }
 
 function hpay_woocommerce_gateway_block_support(){
-	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
-		require_once(rtrim(__DIR__,"/") . '/class/class-wc-hpay-payment-gateway-block.php');
-		
-		add_action(
-			'woocommerce_blocks_payment_method_type_registration',
-			function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
-				global $hpay_pm_class_mapper;
-				foreach($hpay_pm_class_mapper as $holder_class => $info){
-					$pm = $info["data"];
-					$alias = "WC_Gateway_HPay_" . $pm["PaymentMethod"] . "_" . $pm["HPaySiteMethodId"] . "_Block";
-					class_alias("{$holder_class}_BLOCK",$alias);
-					$payment_method_registry->register(new $alias());
+	try{
+		if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
+			require_once(rtrim(__DIR__,"/") . '/class/class-wc-hpay-payment-gateway-block.php');
+			
+			add_action(
+				'woocommerce_blocks_payment_method_type_registration',
+				function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
+					try{
+						global $hpay_pm_class_mapper;
+						foreach($hpay_pm_class_mapper as $holder_class => $info){
+							$pm = $info["data"];
+							$alias = "WC_Gateway_HPay_" . $pm["PaymentMethod"] . "_" . $pm["HPaySiteMethodId"] . "_Block";
+							class_alias("{$holder_class}_BLOCK",$alias);
+							$payment_method_registry->register(new $alias());
+						}
+					}catch(Throwable $ex){
+						try{
+							if(function_exists('hpay_write_log')){
+								hpay_write_log('error', $ex);
+							}
+						}catch(Throwable $e){}
+					}
 				}
+			);
+		}
+	}catch(Throwable $ex){
+		try{
+			if(function_exists('hpay_write_log')){
+				hpay_write_log('error', $ex);
 			}
-		);
+		}catch(Throwable $e){}
 	}
 }
 

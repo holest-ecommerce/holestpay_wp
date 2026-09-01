@@ -4,7 +4,13 @@ if(!function_exists("add_action")){
 	die("Direct access is not allowed");
 };
 
-add_filter( 'cartflows_offer_supported_payment_gateways', 'hpay_add_cartflows_offer_support' );
+try{
+	add_filter( 'cartflows_offer_supported_payment_gateways', 'hpay_add_cartflows_offer_support' );
+	add_filter( "woocommerce_currency_symbols" ,"hpay_fix_currency_registry" ,70 ,1);
+	add_filter( "woocommerce_currency_symbol"  ,"hpay_fix_currency_symbol"   ,70 ,2);
+}catch(Throwable $ex){
+	// Never break WP if integrations fail to register
+}
 
 /**
  * Add new payment gateway in cartflows pro Supported Gateways.
@@ -31,9 +37,6 @@ function hpay_add_cartflows_offer_support( $supported_gateways ){
 	}
 	return $supported_gateways; 
 }
-
-add_filter( "woocommerce_currency_symbols" ,"hpay_fix_currency_registry" ,70 ,1);
-add_filter( "woocommerce_currency_symbol"  ,"hpay_fix_currency_symbol"   ,70 ,2);
 
 function hpay_fix_currency_registry($symbols) {
 	$symbols["RSD"] = __("RSD","holestpay");

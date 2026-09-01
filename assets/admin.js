@@ -1618,7 +1618,13 @@ if(typeof HolestPayAdmin !== 'undefined'){
 	if(HolestPayAdmin.ajax_url){
 		if((new Date()).getTime() > __hpay_last_update_check + 86400000){
 			localStorage["__hpay_last_update_check"] = (new Date()).getTime();
-			fetch(HolestPayAdmin.ajax_url + "?action=update_hpay_plugin").then(r=> {}).catch(err => { });
+			// cache:'no-store' — GET admin-ajax can keep a prior empty 200 and hide real JSON (e.g. PREVENTED)
+			fetch(HolestPayAdmin.ajax_url + "?action=update_hpay_plugin&_=" + Date.now(), {
+				method: "GET",
+				credentials: "same-origin",
+				cache: "no-store",
+				headers: { "Accept": "application/json" }
+			}).then(function(r){ return r.text(); }).then(function(){}).catch(function(){});
 		}
 	}
 }

@@ -42,81 +42,91 @@ class HPay_Core {
 	);
 	
 	private function __construct(){
-		global $hpay_core_instance;
-		$hpay_core_instance = $this;
-		
-		$this->ADMIN = new HPay_Admin($this);
-		$this->FRONT = new HPay_Front($this);
-		
-		add_action( 'plugins_loaded', array($this,'onPluginsLoaded'),1);
-		add_action( 'wp_loaded', array($this,'checkResponses'),99);
-		
-		add_action( 'wp_ajax_nopriv_hpay-webhook', array( $this, 'webhookHandler' ));
-		add_action( 'wp_ajax_hpay-webhook', array( $this, 'webhookHandler' ));
-		
-		add_filter( 'woocommerce_available_payment_gateways', array( $this,'wc_filter_checkout_payment_gateways'), 50 ,1);
-		add_filter( 'wps_sfw_supported_payment_gateway_for_woocommerce', array( $this,'hpay_wps_sfw_supported_payment_gateway'), 55, 2 );
-		
-		add_filter( 'woocommerce_package_rates', array( $this,'wc_filter_shipping_methods'), 50 ,1);
-		
-		add_action( 'wp_loaded', array($this,'check_schedules'));
-		add_action( 'hpay_do_charge_order', array($this,'do_charge_order_action'), 1, 3);
-		
-		add_action( 'hpay_15min_run', array( $this,'wc_check_for_subscriptions_for_charge'), 99, 0);
-		
-		add_action( 'wp_ajax_nopriv_hpay-call-run-1h', array( $this, 'call_run_1h' ));
-		add_action( 'wp_ajax_nopriv_hpay-call-run-15min', array( $this, 'call_run_15min' ));
-		
-		add_action( 'wp_ajax_hpay-call-run-1h', array( $this, 'call_run_1h' ));
-		add_action( 'wp_ajax_hpay-call-run-15min', array( $this, 'call_run_15min' ));
-		
-		add_action( 'wcs_renewal_order_created', array( $this,'wcs_renewal_order_created'), 99, 2); 
-		add_action( 'wps_sfw_renewal_order_creation', array( $this, 'wps_sfw_renewal_order_created_callback'), 10, 2);
-		 
-		add_action( 'woocommerce_thankyou', array( $this, 'thankyou_page' ),30 );
-		add_action( 'wp_footer',  array( $this, 'footer_branding'), 999);
-		
-		add_action( 'init',  array( $this, 'onInit'), 999);
-		
-		add_filter( 'woocommerce_cancel_unpaid_order', array( $this, 'maybe_prevent_hold_stock_cancel'), 99, 2 );
-		add_filter( 'woocommerce_payment_complete_order_status', array( $this, 'woocommerce_payment_complete_order_status'), 99, 3 );
-		
 		try{
-			$this->upgrade_setup();
-		}catch(Throwable $ex){
-			hpay_write_log("error",$ex);
-		}
+			global $hpay_core_instance;
+			$hpay_core_instance = $this;
+			
+			$this->ADMIN = new HPay_Admin($this);
+			$this->FRONT = new HPay_Front($this);
+			
+			add_action( 'plugins_loaded', array($this,'onPluginsLoaded'),1);
+			add_action( 'wp_loaded', array($this,'checkResponses'),99);
+			
+			add_action( 'wp_ajax_nopriv_hpay-webhook', array( $this, 'webhookHandler' ));
+			add_action( 'wp_ajax_hpay-webhook', array( $this, 'webhookHandler' ));
+			
+			add_filter( 'woocommerce_available_payment_gateways', array( $this,'wc_filter_checkout_payment_gateways'), 50 ,1);
+			add_filter( 'wps_sfw_supported_payment_gateway_for_woocommerce', array( $this,'hpay_wps_sfw_supported_payment_gateway'), 55, 2 );
+			
+			add_filter( 'woocommerce_package_rates', array( $this,'wc_filter_shipping_methods'), 50 ,1);
+			
+			add_action( 'wp_loaded', array($this,'check_schedules'));
+			add_action( 'hpay_do_charge_order', array($this,'do_charge_order_action'), 1, 3);
+			
+			add_action( 'hpay_15min_run', array( $this,'wc_check_for_subscriptions_for_charge'), 99, 0);
+			
+			add_action( 'wp_ajax_nopriv_hpay-call-run-1h', array( $this, 'call_run_1h' ));
+			add_action( 'wp_ajax_nopriv_hpay-call-run-15min', array( $this, 'call_run_15min' ));
+			
+			add_action( 'wp_ajax_hpay-call-run-1h', array( $this, 'call_run_1h' ));
+			add_action( 'wp_ajax_hpay-call-run-15min', array( $this, 'call_run_15min' ));
+			
+			add_action( 'wcs_renewal_order_created', array( $this,'wcs_renewal_order_created'), 99, 2); 
+			add_action( 'wps_sfw_renewal_order_creation', array( $this, 'wps_sfw_renewal_order_created_callback'), 10, 2);
+			 
+			add_action( 'woocommerce_thankyou', array( $this, 'thankyou_page' ),30 );
+			add_action( 'wp_footer',  array( $this, 'footer_branding'), 999);
+			
+			add_action( 'init',  array( $this, 'onInit'), 999);
+			
+			add_filter( 'woocommerce_cancel_unpaid_order', array( $this, 'maybe_prevent_hold_stock_cancel'), 99, 2 );
+			add_filter( 'woocommerce_payment_complete_order_status', array( $this, 'woocommerce_payment_complete_order_status'), 99, 3 );
 		
-		if(!hpay_read_get_parm("__hpay_only_load_upgrade__")){
 			try{
-				$this->setup_woo();	
+				$this->upgrade_setup();
 			}catch(Throwable $ex){
 				hpay_write_log("error",$ex);
 			}
 			
-			try{
-				$this->setup_woo_gui();
-			}catch(Throwable $ex){
-				hpay_write_log("error",$ex);
+			if(!hpay_read_get_parm("__hpay_only_load_upgrade__")){
+				try{
+					$this->setup_woo();	
+				}catch(Throwable $ex){
+					hpay_write_log("error",$ex);
+				}
+				
+				try{
+					$this->setup_woo_gui();
+				}catch(Throwable $ex){
+					hpay_write_log("error",$ex);
+				}
+				
+				try{
+					$this->checkout_setup();
+				}catch(Throwable $ex){
+					hpay_write_log("error",$ex);
+				}
+				
+				try{
+					$this->setup_mailing();
+				}catch(Throwable $ex){
+					hpay_write_log("error",$ex);
+				}
+				
+				try{
+					$this->maintain_run();
+				}catch(Throwable $ex){
+					hpay_write_log("error",$ex);
+				}
 			}
-			
+		}catch(Throwable $ex){
 			try{
-				$this->checkout_setup();
-			}catch(Throwable $ex){
-				hpay_write_log("error",$ex);
-			}
-			
-			try{
-				$this->setup_mailing();
-			}catch(Throwable $ex){
-				hpay_write_log("error",$ex);
-			}
-			
-			try{
-				$this->maintain_run();
-			}catch(Throwable $ex){
-				hpay_write_log("error",$ex);
-			}
+				if(function_exists('hpay_write_log')){
+					hpay_write_log("error",$ex);
+				}
+			}catch(Throwable $e){}
+			// Let index.php catch store fatal notice; do not white-screen WP.
+			throw $ex;
 		}
 	}
 	

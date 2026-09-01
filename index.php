@@ -3,8 +3,9 @@
  * Plugin Name: HolestPay Payments Plugin WooCommerce or Standalone 
  * Plugin URI:
  * Description: HolestPay payment system supports integration with most of the banks in the Adriatic region. Ovaj softver je vlasnistvo HOLEST E-COMMERCE D.O.O. Neovlašćenim korišćenjem ovog softver-a podležete riziku od zakonske kazne.
- * Version: 1.1.165
+ * Version: 1.1.177
  * Requires at least: 4.0
+ * Requires PHP: 7.1
  * WC requires at least: 4.2.0
  * WC tested up to: 11.0.1
  * Tested up to: 7.1.0
@@ -398,9 +399,118 @@ if(!function_exists('hpay_index_register_fatal_dashboard_notice')){
 	}
 }
 
+if(!function_exists('hpay_index_file_is_missing_or_empty')){
+	function hpay_index_file_is_missing_or_empty($path){
+		try{
+			if(!is_string($path) || $path === ''){
+				return true;
+			}
+			if(!@file_exists($path) || !@is_file($path)){
+				return true;
+			}
+			$size = @filesize($path);
+			if($size === false || $size < 1){
+				return true;
+			}
+			return false;
+		}catch(Throwable $e){
+			return true;
+		}
+	}
+}
+
+if(!function_exists('hpay_index_collect_ubak_files')){
+	function hpay_index_collect_ubak_files($dir, &$out, $depth = 0){
+		try{
+			if($depth > 24){
+				return;
+			}
+			if(!is_string($dir) || $dir === '' || !@is_dir($dir)){
+				return;
+			}
+			$entries = @scandir($dir);
+			if(!is_array($entries)){
+				return;
+			}
+			foreach($entries as $name){
+				try{
+					if($name === '.' || $name === '..'){
+						continue;
+					}
+					$path = $dir . DIRECTORY_SEPARATOR . $name;
+					if(@is_dir($path)){
+						hpay_index_collect_ubak_files($path, $out, $depth + 1);
+						continue;
+					}
+					if(@is_file($path) && is_string($name) && strlen($name) > 5 && substr($name, -5) === '.ubak'){
+						$out[] = $path;
+					}
+				}catch(Throwable $e){}
+			}
+		}catch(Throwable $e){}
+	}
+}
+
+/**
+ * Restore originals from *.ubak when the live file is missing or empty.
+ * Safe to call from index.php only (no plugin deps). Leaves .ubak in place for later retries.
+ * @return int number of files restored
+ */
+if(!function_exists('hpay_index_restore_ubak_files')){
+	function hpay_index_restore_ubak_files($plugin_dir = null){
+		$restored = 0;
+		try{
+			if($plugin_dir === null || $plugin_dir === ''){
+				$plugin_dir = __DIR__;
+			}
+			$ubaks = array();
+			hpay_index_collect_ubak_files($plugin_dir, $ubaks);
+			if(empty($ubaks)){
+				return 0;
+			}
+			foreach($ubaks as $ubak_path){
+				try{
+					if(!is_string($ubak_path) || strlen($ubak_path) < 6){
+						continue;
+					}
+					if(!@file_exists($ubak_path) || !@is_file($ubak_path)){
+						continue;
+					}
+					$ubak_size = @filesize($ubak_path);
+					if($ubak_size === false || $ubak_size < 1){
+						continue;
+					}
+					$orig_path = substr($ubak_path, 0, -5); // strip ".ubak"
+					if($orig_path === '' || $orig_path === false){
+						continue;
+					}
+					if(!hpay_index_file_is_missing_or_empty($orig_path)){
+						continue;
+					}
+					if(@copy($ubak_path, $orig_path)){
+						if(!hpay_index_file_is_missing_or_empty($orig_path)){
+							$restored++;
+						}
+					}
+				}catch(Throwable $e){}
+			}
+		}catch(Throwable $e){}
+		return $restored;
+	}
+}
+
+// Heal any empty/missing files from leftover .ubak before bootstrap (safe no-op if none).
+try{
+	hpay_index_restore_ubak_files(__DIR__);
+}catch(Throwable $e){}
+
 try{
 	require_once(__DIR__ . DIRECTORY_SEPARATOR . "hpay.php");
 }catch(Throwable $ex){
+	try{
+		hpay_index_restore_ubak_files(__DIR__);
+	}catch(Throwable $e){}
+
 	try{
 		if(function_exists('hpay_write_log')){
 			try{
