@@ -605,6 +605,8 @@ class HPay_Admin{
 										$transaction_pay_status =  "PAID";
 									}else if(stripos($resp["status"],"PAID") !== false){
 										$transaction_pay_status =  "PAID";
+									}else if(stripos($resp["status"],"PAYING") !== false){
+										$transaction_pay_status =  "PAID";
 									}else if(stripos($resp["status"],"RESERVED") !== false){
 										$transaction_pay_status =  "RESERVED";
 									}else if(stripos($resp["status"],"AWAITING") !== false){
@@ -639,6 +641,15 @@ class HPay_Admin{
 						
 						try{
 							HPay_Core::instance()->dispayOrderInfo($order_id , null, null, null, "fiscal");
+						}catch(Throwable $ex){
+							echo "<!-- ";
+							var_dump($ex);
+							echo " -->";
+							echo $ex->getMessage();
+						}
+						
+						try{
+							HPay_Core::instance()->dispayOrderInfo($order_id , null, null, null, "integr");
 						}catch(Throwable $ex){
 							echo "<!-- ";
 							var_dump($ex);

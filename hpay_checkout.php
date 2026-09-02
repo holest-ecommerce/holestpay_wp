@@ -120,191 +120,214 @@ trait HPay_Core_Checkout{
 	}
 	
 	public function dispayOrderInfo($order_id, $data, $transaction_pay_status = null, $hmethod = null, $display_layout = null){
-		
-		global $hpay_mail_content_capture_on;
-		
-		$method_id = "";
-		if($hmethod){
-			$method_id = $hmethod->id;
-		}
-		
-		$order = null;
-		
-		if($order_id){
-			$order = hpay_get_order($order_id);
-		}
-		
-		$show_payment  = true;
-		$show_fiscal   = true;
-		$show_shipping = true;
-		$show_integr   = true;
-		
-		if($display_layout){
-			if(is_string($display_layout)){
-				$display_layout = array_filter(array_map("trim",explode(",",strtolower($display_layout))),"trim");
-			}
-			if(!empty($display_layout) && is_array($display_layout)){
-				if(!in_array("payment",$display_layout)){
-					$show_payment  = false;
-				}
-				if(!in_array("fiscal",$display_layout)){
-					$show_fiscal   = false;
-				}
-				if(!in_array("shipping",$display_layout)){
-					$show_shipping = false;
-				}
-			}
-		}
-
-		$show_integr = $show_fiscal;
-		
-		if($show_payment && $data){
+		try{
+			global $hpay_mail_content_capture_on;
 			
-			if(!$transaction_pay_status){
-				if(isset($data["transaction_pay_status"])){
-					$transaction_pay_status = $data["transaction_pay_status"];
-				}
+			$method_id = "";
+			if($hmethod){
+				$method_id = $hmethod->id;
 			}
 			
-			$failed = false;
+			$order = null;
 			
-			if($transaction_pay_status !== null){
-				echo "<h4 class='hpay-user-transaction-info pay-outcome-" . ($transaction_pay_status === false ? "failed" : ( $transaction_pay_status === true ? "success" : "pend")) ."'>";
-				if(stripos($transaction_pay_status, "PAID") !== false){
-					echo esc_attr__("Payment successful","holestpay");	
-				}else if(stripos($transaction_pay_status, "PAYING") !== false){
-					echo esc_attr__("Payments started","holestpay");	
-				}else if(stripos($transaction_pay_status, "RESERVED") !== false){
-					echo esc_attr__("Payment successful, pending amount capture","holestpay");	
-				}else if(stripos($transaction_pay_status, "AWAITING") !== false){
-					echo esc_attr__("Awaiting payment","holestpay");	
-				}else if(stripos($transaction_pay_status, "CANCELED") !== false){
-					echo esc_attr__("Payment canceled","holestpay");
-				}else if(stripos($transaction_pay_status, "PARTIALLY-REFUNDED") !== false){
-					echo esc_attr__("Payment partially refunded","holestpay");	
-				}else if(stripos($transaction_pay_status, "REFUNDED") !== false){
-					echo esc_attr__("Payment refunded","holestpay");	
-				}else if(stripos($transaction_pay_status, "REFUSED") !== false || stripos($transaction_pay_status, "FAILED") !== false || stripos($transaction_pay_status, "EXPIRED") !== false){
-					echo esc_attr__("Payment failed","holestpay");
-					$failed = true;
-				}else if($transaction_pay_status){
-					echo esc_attr__("Payment","holestpay");
-					echo " " . ucfirst($transaction_pay_status);
-				}
-				echo "</h4>";
+			if($order_id){
+				$order = hpay_get_order($order_id);
 			}
 			
-			if($failed){
-				echo "<p>".esc_attr__("Payment unsuccessful, your account has not been debited. The most common cause is an incorrect card number, expiration date, or security code. Try again, and in case of repeated errors, contact your bank.","holestpay")."</p>";
-			}
-			
-			if(isset($data["transaction_user_info"])){
-				echo "<pre class='hpay-transaction-info method-{$method_id}' pay_status='{$transaction_pay_status}'>";
-				echo str_replace(array('"',"{","}","[","]"),"",json_encode($this->translateKeys($data["transaction_user_info"]),JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-				echo "</pre>";
-			}
-		}
-		
-		
-		
-		global $hpay_fiscal_shipping_outputed;
-		if(!isset($hpay_fiscal_shipping_outputed))
-			$hpay_fiscal_shipping_outputed = array();
-		
-		if($hpay_mail_content_capture_on){
+			// null layout = show everything; otherwise whitelist only requested sections
 			$show_payment  = true;
 			$show_fiscal   = true;
 			$show_shipping = true;
 			$show_integr   = true;
-		}
-		
-		if($show_payment && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_payment"]))){
-			if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_payment"] = true;
-			$payment_html = $order->get_meta('_payment_html');
-			if(!$payment_html){
-				$payment_html = "";
-			}
-			if($payment_html)
-				echo "<div class='hpay-payment-info'>{$payment_html}</div>";
-		}
-		
-		if($show_fiscal && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_fiscal"]))){
-			if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_fiscal"] = true;
+			$layout_parts  = null;
 			
-			$fiscal_user_info   = $order->get_meta('_fiscal_user_info');
-			$fiscal_html        = $order->get_meta('_fiscal_html');
-			
-			if(!$fiscal_html){
-				$fiscal_html = "";
-			}
-			
-			if($fiscal_user_info){
-				$added_nl = false;
-				if(!empty($fiscal_user_info)){
-					foreach($fiscal_user_info as $info){
-						if(isset($info["info_views"])){
-							if(isset($info["info_link"]) && in_array("pdf", $info["info_views"])){
-								$filename = sanitize_file_name($info["name"]).".pdf";
-								if(!$added_nl){
-									$added_nl = true;
-									$fiscal_html .= "<p>";
-								}
-								$fiscal_html .= ("<span class='hpay-download-link'> <a target='_blank' href='" . esc_url(add_query_arg(array('pdf' => 1, "download" => 1), $info["info_link"])) . "'>" . __("Download") . " " . $filename . "...</a> </span>");
-							}
-						}	
+			if($display_layout !== null && $display_layout !== "" && $display_layout !== false){
+				$parts = $display_layout;
+				if(is_string($parts)){
+					$parts = explode(",", strtolower($parts));
+				}
+				if(!is_array($parts)){
+					$parts = array();
+				}
+				$layout_parts = array();
+				foreach($parts as $p){
+					if(!is_string($p)){
+						continue;
+					}
+					$p = trim(strtolower($p));
+					if($p !== ""){
+						$layout_parts[] = $p;
 					}
 				}
-				if($added_nl)
-					$fiscal_html .= "</p>";
+				$show_payment  = in_array("payment", $layout_parts, true);
+				$show_fiscal   = in_array("fiscal", $layout_parts, true);
+				$show_shipping = in_array("shipping", $layout_parts, true);
+				// integr follows fiscal when layout is restricted (same as previous behavior)
+				$show_integr   = in_array("integr", $layout_parts, true) || $show_fiscal;
 			}
 			
-			if($fiscal_html)
-				echo "<div class='hpay-fiscal-info'>{$fiscal_html}</div>";
-		
-		}
-
-		if($show_integr && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_integr"]))){
-			if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_integr"] = true;
-			$integr_html = $order->get_meta('_integr_html');
-			if(!$integr_html){
-				$integr_html = "";
-			}
-			if($integr_html)
-				echo "<div class='hpay-integr-info'>{$integr_html}</div>";
-		}
-
-		if($show_shipping && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_shipping"]))){
-			if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_shipping"] = true;
-			
-			$shipping_user_info = $order->get_meta('_shipping_user_info');
-			$shipping_html      = $order->get_meta('_shipping_html');
-			
-			if(!$shipping_html){
-				$shipping_html = "";
-			}
+			if($show_payment && $data){
 				
-			if($shipping_user_info){
-				$added_nl = false;
-				if(!empty($shipping_user_info)){
-					foreach(["shipping_user_info"] as $info){
-						if(isset($info["info_views"])){
-							if(isset($info["info_link"]) && in_array("pdf", $info["info_views"])){
-								$filename = sanitize_file_name($info["name"]).".pdf";
-								if(!$added_nl){
-									$added_nl = true;
-									$shipping_html .=  "<p>";
-								}
-								$shipping_html .= ("<span class='hpay-download-link'> <a target='_blank' href='" . esc_url(add_query_arg(array('pdf' => 1, "download" => 1), $info["info_link"])) . "'>" . __("Download") . " " . $filename . " ...</a> </span>");
-							}
-						}	
+				if(!$transaction_pay_status){
+					if(isset($data["transaction_pay_status"])){
+						$transaction_pay_status = $data["transaction_pay_status"];
 					}
 				}
-				if($added_nl)
-					$shipping_html .= "</p>";
+				
+				$failed = false;
+				
+				if($transaction_pay_status !== null){
+					echo "<h4 class='hpay-user-transaction-info pay-outcome-" . ($transaction_pay_status === false ? "failed" : ( $transaction_pay_status === true ? "success" : "pend")) ."'>";
+					if(stripos($transaction_pay_status, "PAID") !== false){
+						echo esc_attr__("Payment successful","holestpay");	
+					}else if(stripos($transaction_pay_status, "PAYING") !== false){
+						echo esc_attr__("Payments started","holestpay");	
+					}else if(stripos($transaction_pay_status, "RESERVED") !== false){
+						echo esc_attr__("Payment successful, pending amount capture","holestpay");	
+					}else if(stripos($transaction_pay_status, "AWAITING") !== false){
+						echo esc_attr__("Awaiting payment","holestpay");	
+					}else if(stripos($transaction_pay_status, "CANCELED") !== false){
+						echo esc_attr__("Payment canceled","holestpay");
+					}else if(stripos($transaction_pay_status, "PARTIALLY-REFUNDED") !== false){
+						echo esc_attr__("Payment partially refunded","holestpay");	
+					}else if(stripos($transaction_pay_status, "REFUNDED") !== false){
+						echo esc_attr__("Payment refunded","holestpay");	
+					}else if(stripos($transaction_pay_status, "REFUSED") !== false || stripos($transaction_pay_status, "FAILED") !== false || stripos($transaction_pay_status, "EXPIRED") !== false){
+						echo esc_attr__("Payment failed","holestpay");
+						$failed = true;
+					}else if($transaction_pay_status){
+						echo esc_attr__("Payment","holestpay");
+						echo " " . ucfirst($transaction_pay_status);
+					}
+					echo "</h4>";
+				}
+				
+				if($failed){
+					echo "<p>".esc_attr__("Payment unsuccessful, your account has not been debited. The most common cause is an incorrect card number, expiration date, or security code. Try again, and in case of repeated errors, contact your bank.","holestpay")."</p>";
+				}
+				
+				if(isset($data["transaction_user_info"])){
+					echo "<pre class='hpay-transaction-info method-{$method_id}' pay_status='{$transaction_pay_status}'>";
+					echo str_replace(array('"',"{","}","[","]"),"",json_encode($this->translateKeys($data["transaction_user_info"]),JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+					echo "</pre>";
+				}
 			}
 			
-			if($shipping_html)
-				echo "<div class='hpay-shipping-info'>{$shipping_html}</div>";
+			// Payment history row: transaction $data (+ optional _payment_html once). Never fiscal/shipping/integr here.
+			$payment_history_row = ($data && $layout_parts !== null && $show_payment && !$show_fiscal && !$show_shipping);
+			
+			global $hpay_fiscal_shipping_outputed;
+			if(!isset($hpay_fiscal_shipping_outputed))
+				$hpay_fiscal_shipping_outputed = array();
+			
+			// Mail capture may need all order-level blocks even when a transaction $data was passed
+			if($hpay_mail_content_capture_on && $layout_parts === null){
+				$show_payment  = true;
+				$show_fiscal   = true;
+				$show_shipping = true;
+				$show_integr   = true;
+				$payment_history_row = false;
+			}
+			
+			if($show_payment && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_payment"]))){
+				if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_payment"] = true;
+				$payment_html = $order->get_meta('_payment_html');
+				if(!$payment_html){
+					$payment_html = "";
+				}
+				if($payment_html)
+					echo "<div class='hpay-payment-info'>{$payment_html}</div>";
+			}
+			
+			if($payment_history_row){
+				return;
+			}
+			
+			if($show_fiscal && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_fiscal"]))){
+				if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_fiscal"] = true;
+				
+				$fiscal_user_info   = $order->get_meta('_fiscal_user_info');
+				$fiscal_html        = $order->get_meta('_fiscal_html');
+				
+				if(!$fiscal_html){
+					$fiscal_html = "";
+				}
+				
+				if($fiscal_user_info){
+					$added_nl = false;
+					if(!empty($fiscal_user_info)){
+						foreach($fiscal_user_info as $info){
+							if(isset($info["info_views"])){
+								if(isset($info["info_link"]) && in_array("pdf", $info["info_views"])){
+									$filename = sanitize_file_name($info["name"]).".pdf";
+									if(!$added_nl){
+										$added_nl = true;
+										$fiscal_html .= "<p>";
+									}
+									$fiscal_html .= ("<span class='hpay-download-link'> <a target='_blank' href='" . esc_url(add_query_arg(array('pdf' => 1, "download" => 1), $info["info_link"])) . "'>" . __("Download") . " " . $filename . "...</a> </span>");
+								}
+							}	
+						}
+					}
+					if($added_nl)
+						$fiscal_html .= "</p>";
+				}
+				
+				if($fiscal_html)
+					echo "<div class='hpay-fiscal-info'>{$fiscal_html}</div>";
+			
+			}
+
+			if($show_integr && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_integr"]))){
+				if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_integr"] = true;
+				$integr_html = $order->get_meta('_integr_html');
+				if(!$integr_html){
+					$integr_html = "";
+				}
+				if($integr_html)
+					echo "<div class='hpay-integr-info'>{$integr_html}</div>";
+			}
+
+			if($show_shipping && $order && ($hpay_mail_content_capture_on || !isset($hpay_fiscal_shipping_outputed["{$order_id}_shipping"]))){
+				if(!$hpay_mail_content_capture_on) $hpay_fiscal_shipping_outputed["{$order_id}_shipping"] = true;
+				
+				$shipping_user_info = $order->get_meta('_shipping_user_info');
+				$shipping_html      = $order->get_meta('_shipping_html');
+				
+				if(!$shipping_html){
+					$shipping_html = "";
+				}
+					
+				if($shipping_user_info){
+					$added_nl = false;
+					if(!empty($shipping_user_info) && is_array($shipping_user_info)){
+						foreach($shipping_user_info as $info){
+							if(!is_array($info)){
+								continue;
+							}
+							if(isset($info["info_views"])){
+								if(isset($info["info_link"]) && in_array("pdf", $info["info_views"])){
+									$filename = sanitize_file_name($info["name"]).".pdf";
+									if(!$added_nl){
+										$added_nl = true;
+										$shipping_html .=  "<p>";
+									}
+									$shipping_html .= ("<span class='hpay-download-link'> <a target='_blank' href='" . esc_url(add_query_arg(array('pdf' => 1, "download" => 1), $info["info_link"])) . "'>" . __("Download") . " " . $filename . " ...</a> </span>");
+								}
+							}	
+						}
+					}
+					if($added_nl)
+						$shipping_html .= "</p>";
+				}
+				
+				if($shipping_html)
+					echo "<div class='hpay-shipping-info'>{$shipping_html}</div>";
+			}
+		}catch(Throwable $ex){
+			try{
+				hpay_write_log("error", $ex);
+			}catch(Throwable $e){}
 		}
 	}
 	
