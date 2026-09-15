@@ -451,7 +451,7 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 					
 					///////////////////////////////////////////////////////////////////////////////////////////////////////////
 					$pay_request = HPay_Core::instance()->generateHPayRequest($order, $hpaymethod_id, $cof, $vault_token_uid, $subscription_uid, $recurring_data);
-					echo '<script type="text/javascript"> 
+					echo '<script type="text/javascript" data-hpay-run-script="' . esc_attr($this->hpay_id) . '"> 
 							let __callHPayPayment  = function(){ HPayInit(HolestPayCheckout.merchant_site_uid, HolestPayCheckout.hpaylang).then(r => {  window.hpay_method_wcapi =' . json_encode($result_accept) . ';window.hpay_pay_wc_order_id=' . intval($order_id) . ';window.hpay_last_pay_req = ' . json_encode($pay_request) . ';  presentHPayPayForm(window.hpay_last_pay_req); }); };
 							if(typeof HPayInit !== "undefined"){
 								__callHPayPayment();

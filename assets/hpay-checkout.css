@@ -439,3 +439,13 @@ body.is-company-order-no [hpay_checkout_field='company_reg_id']{
 		display: none !important;
 	}
 }
+
+
+:has(> [data-hpay-run-script]),
+:has(> :only-child > [data-hpay-run-script]) {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	display: inline-block;
+	opacity: 0;
+}
