@@ -807,7 +807,7 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 								
 				return array(
 					'result'   => 'success',
-					'messages' => '<script>window.hpay_method_wcapi =' . json_encode($result_accept) . ';window.hpay_pay_wc_order_id=' . intval($order_id) . '; presentHPayPayForm(' . json_encode($pay_request) . ');</script>',
+					'messages' => '<script data-hpay-run-script="' . esc_attr($this->hpay_id) . '">window.hpay_method_wcapi =' . json_encode($result_accept) . ';window.hpay_pay_wc_order_id=' . intval($order_id) . '; presentHPayPayForm(' . json_encode($pay_request) . ');</script>',
 					'reload'   => false
 				);
 			}
