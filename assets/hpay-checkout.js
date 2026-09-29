@@ -553,17 +553,18 @@
 					hpay_closePopup("payreq-error");
 					if(resinp[0]){
 						resinp.val(JSON.stringify(hpay_response));
-						
-						if(window.hpay_last_pay_req && !HolestPayCheckout.dock_payment_methods){
-							presentHPayPayForm(window.hpay_last_pay_req);
-						}else{
-							if(resinp[0].form){
-								if(jQuery(resinp[0].form).find(':submit')[0]){
-									jQuery(resinp[0].form).find(':submit').trigger("click");
-								}else if(jQuery(resinp[0].form).find("button[class*='checkout-place-order-button']")[0]){
-									jQuery(resinp[0].form).find("button[class*='checkout-place-order-button']").trigger('click');
-								}else{
-									jQuery(resinp[0].form).find("button[class*='checkout-place-order-button']").trigger('click');
+						if(HolestPayCheckout.dock_payment_methods != 1){
+							if(window.hpay_last_pay_req){
+								presentHPayPayForm(window.hpay_last_pay_req);
+							}else{
+								if(resinp[0].form){
+									if(jQuery(resinp[0].form).find(':submit')[0]){
+										jQuery(resinp[0].form).find(':submit').trigger("click");
+									}else if(jQuery(resinp[0].form).find("button[class*='checkout-place-order-button']")[0]){
+										jQuery(resinp[0].form).find("button[class*='checkout-place-order-button']").trigger('click');
+									}else{
+										jQuery(resinp[0].form).find("button[class*='checkout-place-order-button']").trigger('click');
+									}
 								}
 							}
 						}
