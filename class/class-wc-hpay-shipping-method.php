@@ -182,9 +182,13 @@ class WC_HPay_Shipping_Method extends WC_Shipping_Method {
 			}
 			
 			if($hcart && $hshipping_method_id){
+				// Only the chosen method's instance may recalculate (other HPay methods also hook this action)
+				if(intval($this->hpay_id) !== intval($hshipping_method_id)){
+					return;
+				}
 				$hpay_shipping_method = HPay_Core::shipping_method_instance($hshipping_method_id);
-				if($hpay_shipping_method && $hpay_shipping_method->hpay_id == $hshipping_method_id){
-					$cost     = $this->calculate_hpay_cost($hcart);
+				if($hpay_shipping_method && intval($hpay_shipping_method->hpay_id) === intval($hshipping_method_id)){
+					$cost = $hpay_shipping_method->calculate_hpay_cost($hcart);
 					if($order){
 						foreach ( $order->get_items("shipping") as $item_id => $item ) {
 							if(stripos($item->get_method_id(),"hpayshipping-") !== false){
