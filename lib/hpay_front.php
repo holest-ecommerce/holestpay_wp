@@ -376,7 +376,14 @@ class HPay_Front{
 					"Ordering as a company?" => __('Ordering as a company?', 'holestpay'),
 					"Company Tax ID" => __('Company Tax ID', 'holestpay'),
 					"Company Register ID" => __('Company Register ID', 'holestpay'),
-					"Company Name" => __('Company Name', 'holestpay')
+					"Company Name" => __('Company Name', 'holestpay'),
+					"Authorized Amount" => __('Authorized Amount', 'holestpay'),
+					"Accounted Amount" => __('Accounted Amount', 'holestpay'),
+					"Refunded Amount" => __('Refunded Amount', 'holestpay'),
+					"Bank Account" => __('Bank Account', 'holestpay'),
+					"REF MOD97 PNB" => __('REF MOD97 PNB', 'holestpay'),
+					"Purpose" => __('Purpose', 'holestpay'),
+					"Probable reason" => __('Probable reason', 'holestpay')
 				),
 				"ajax_url"          => add_query_arg( 'action', "hpay-user-operations",admin_url('admin-ajax.php')),
 				"language"          => get_locale(),

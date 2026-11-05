@@ -22,6 +22,10 @@ msgstr ""
 "(hpay) Neočekivana promena statusa narudžbine od strane drugog dodatka. "
 "Ispravljno nazad:"
 
+#: lib/hpay_front.php:381
+msgid "Accounted Amount"
+msgstr "Proknjiženi iznos"
+
 #: hpay_checkout.php:365
 msgid "(if multiple split with ,)"
 msgstr "(za vise razdeli sa ,)"
@@ -334,6 +338,14 @@ msgstr "Reference podataka"
 #: lib/hpay_admin.php:1699
 msgid "Days"
 msgstr "Dani"
+
+#: lib/hpay_admin.php:1642
+msgid "Disable direct pay button"
+msgstr "Isključi dugme za direktno plaćanje"
+
+#: lib/hpay_admin.php:1642
+msgid "Hide pay / PAY NOW on thank you and unpaid order views; still shown for HPay methods with PAYING/FAILED/ERROR/REFUSED or no payment status"
+msgstr "Sakrij Pay / PAY NOW na thank you i neplaćenim porudžbinama; i dalje se prikazuje za HPay metode sa statusom PAYING/FAILED/ERROR/REFUSED ili bez platnog statusa"
 
 #: lib/hpay_admin.php:1639 lib/hpay_admin.php:1647 lib/hpay_admin.php:1656
 msgid "DETECTED"
@@ -1217,6 +1229,14 @@ msgstr "Količina:"
 msgid "Reccuring interval"
 msgstr "Ponavljajuće plaćanje"
 
+#: lib/hpay_front.php:380
+msgid "Authorized Amount"
+msgstr "Odobreni iznos"
+
+#: lib/hpay_front.php:384
+msgid "Bank Account"
+msgstr "Žiro račun"
+
 #: lib/hpay_front.php:365
 msgid "Reccuring interval value"
 msgstr "Ponavljajuće plaćanje - vrednost"
@@ -1228,6 +1248,22 @@ msgstr "Ponavljajuće plaćanje - broj naplata"
 #: lib/hpay_front.php:360
 msgid "Refunded amount"
 msgstr "Refundirani iznos"
+
+#: lib/hpay_front.php:383
+msgid "Refunded Amount"
+msgstr "Refundirani iznos"
+
+#: lib/hpay_front.php:386
+msgid "Purpose"
+msgstr "Svrha"
+
+#: lib/hpay_front.php:387
+msgid "Probable reason"
+msgstr "Verovatan razlog"
+
+#: lib/hpay_front.php:385
+msgid "REF MOD97 PNB"
+msgstr "Poziv na broj (MOD97)"
 
 #: lib/hpay_admin.php:1213
 msgid "Remove"

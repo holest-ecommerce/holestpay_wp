@@ -952,6 +952,8 @@ trait HPay_Core_Data {
 					"customer_id"        => $order->get_customer_id(),
 					"payment_method_id"  => $order->get_payment_method(),
 					"shipping_method_id" => $shipping_method_id,
+					"payment_gateways"   => $this->order_sitedata_payment_gateways($order),
+					"shipping"           => $this->order_sitedata_shipping($order),
 					"status"             => $order->get_status(),
 					"created_utc"        => $created_utc	
 				)
@@ -1196,6 +1198,8 @@ trait HPay_Core_Data {
 					"customer_id"        => $order->get_customer_id(),
 					"payment_method_id"  => $order->get_payment_method(),
 					"shipping_method_id" => $shipping_method_id,
+					"payment_gateways"   => $this->order_sitedata_payment_gateways($order),
+					"shipping"           => $this->order_sitedata_shipping($order),
 					"status"             => $order->get_status(),
 					"created_utc"        => $created_utc 
 				),
@@ -1348,6 +1352,36 @@ trait HPay_Core_Data {
 		
 		$pay_request["verificationhash"] = esc_attr($this->payRequestSignatureHash("","",$pay_request["order_uid"],$pay_request["order_amount"], $pay_request["order_currency"],$pay_request["vault_token_uid"], $subscription_uid));
 		return $pay_request;
+	}
+	
+	private function order_sitedata_payment_gateways($order){
+		$gateways = array();
+		try{
+			$title = $order->get_payment_method_title();
+			if($title){
+				$gateways[] = $title;
+			}
+		}catch(Throwable $ex){}
+		return $gateways;
+	}
+	
+	private function order_sitedata_shipping($order){
+		$shipping = array();
+		try{
+			foreach($order->get_shipping_methods() as $ship_item){
+				try{
+					$title = $ship_item->get_method_title();
+					if(!$title){
+						$title = $ship_item->get_name();
+					}
+					$shipping[] = array(
+						"title" => $title ? $title : "",
+						"code"  => $ship_item->get_method_id()
+					);
+				}catch(Throwable $iex){}
+			}
+		}catch(Throwable $ex){}
+		return $shipping;
 	}
 	
 }

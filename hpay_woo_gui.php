@@ -52,6 +52,10 @@ trait HPay_Core_WooGUI {
 	
 	function add_custom_order_button( $actions, $order ) {
 		try{
+			if(HPay_Core::instance()->getSetting("disable_direct_pay","") == 1){
+				return $actions;
+			}
+			
 			$render_button  = false;
 			$hmethod = HPay_Core::payment_method_instance($order->get_payment_method()); 
 			if($hmethod){

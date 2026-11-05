@@ -352,7 +352,18 @@ class WC_Gateway_HPayPayment extends WC_Payment_Gateway {
 			$order = hpay_get_order( $order_id );
 			
 			global $hpay_thankyou_pay_button;
-			if(!$hpay_thankyou_pay_button){
+			$show_pay_button = true;
+			if(HPay_Core::instance()->getSetting("disable_direct_pay","") == 1){
+				$show_pay_button = false;
+				// Exception: still show for HPay method when unpaid retry statuses or no payment status yet
+				$hmethod = HPay_Core::payment_method_instance($order->get_payment_method());
+				if($hmethod){
+					if(!$hpay_payment_status || in_array($hpay_payment_status, array("PAYING","FAILED","ERROR","REFUSED"), true)){
+						$show_pay_button = true;
+					}
+				}
+			}
+			if(!$hpay_thankyou_pay_button && $show_pay_button){
 				?>
 				<p><a href="<?php echo esc_url($order->get_checkout_payment_url()); ?>" class="button alt button-primary"><?php echo __("Pay","holestpay"); ?></a></p>
 				<?php
