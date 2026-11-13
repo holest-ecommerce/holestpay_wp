@@ -64,6 +64,45 @@ form#add_payment_method .hpay-vault-tokens{
     margin: 1px;
 }
 
+/* My Account > Payment methods — fixed brand width + last used under method */
+.woocommerce-MyAccount-paymentMethods .hpay-pmethod{
+	display:inline-grid;
+	grid-template-columns:120px auto;
+	column-gap:8px;
+	row-gap:2px;
+	align-items:center;
+	line-height:1.2;
+	font-size:85%;
+}
+.woocommerce-MyAccount-paymentMethods .hpay-pmethod .hpay-token-brand{
+	display:inline-block;
+	width:120px;
+	max-width:120px;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	white-space:nowrap;
+	vertical-align:middle;
+	line-height:1;
+}
+.woocommerce-MyAccount-paymentMethods .hpay-pmethod-umask{
+	white-space:nowrap;
+}
+.woocommerce-MyAccount-paymentMethods .hpay-pmethod-meta{
+	grid-column:2;
+	font-size:9px;
+	font-style:italic;
+	line-height:1.2;
+	opacity:0.75;
+	white-space:nowrap;
+}
+.woocommerce-MyAccount-paymentMethods td.woocommerce-PaymentMethod--method,
+.woocommerce-MyAccount-paymentMethods td.woocommerce-PaymentMethod--expires,
+.woocommerce-MyAccount-paymentMethods td.woocommerce-PaymentMethod--actions{
+	padding-top:8px;
+	padding-bottom:8px;
+	vertical-align:middle;
+}
+
 div.hpay_popup{
 	position:fixed;
 	top:0;

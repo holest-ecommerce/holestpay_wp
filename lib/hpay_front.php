@@ -13,7 +13,8 @@ class HPay_Front{
 		add_action( 'wp_ajax_nopriv_hpay-user-operations', array( $this, 'user_operations' ));
 		
 		add_action( 'woocommerce_edit_account_form', array( $this, 'add_hpay_payment_token_list'),20);
-		add_action( 'woocommerce_after_account_payment_methods', array( $this, 'add_hpay_payment_token_list'));
+		// Payment methods page uses the native WooCommerce saved-methods table (HPay tokens merged there).
+		add_action( 'woocommerce_after_account_payment_methods', array( $this, 'add_hpay_payment_methods_note'));
 		
 		add_action( 'wp_loaded', array( $this, 'handle_buick_buy'),10,0);
 	}
@@ -31,9 +32,13 @@ class HPay_Front{
 			if(!$vault_count){
 				echo "<p>" . esc_attr__( 'Your have no saved payment token vault references for this site', 'holestpay' ) . "</p>";
 			}
-			echo "<p class='hpay-note'>" . esc_attr__("NOTE: Information needed for card payment can not be reconstructed form a vault reference, instead this data is stored with ceritied payment providers and banks. Vault reference is just a permit ticket for particular merchant to charge your card.", 'holestpay') . "</p>";
+			$this->add_hpay_payment_methods_note();
 			echo "<hr />";
 		}
+	}
+
+	public function add_hpay_payment_methods_note($arg1 = null){
+		echo "<p class='hpay-note'>" . esc_attr__("NOTE: Information needed for card payment can not be reconstructed form a vault reference, instead this data is stored with ceritied payment providers and banks. Vault reference is just a permit ticket for particular merchant to charge your card.", 'holestpay') . "</p>";
 	}
 	
 	public function handle_buick_buy(){

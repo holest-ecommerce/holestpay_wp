@@ -374,5 +374,102 @@ class WC_Payment_Token_HPay extends WC_Payment_Token {
 			return false;
 		}
 	}
+
+	/**
+	 * Tokens use gateway_id "hpay", but WC My Account only loads tokens whose gateway_id is a
+	 * registered payment gateway id (hpaypayment-...). Merge HPay tokens back into the customer list.
+	 */
+	public static function filter_customer_payment_tokens( $tokens, $customer_id, $gateway_id ) {
+		if ( $gateway_id !== '' && $gateway_id !== 'hpay' ) {
+			return $tokens;
+		}
+		if ( $gateway_id === 'hpay' ) {
+			return $tokens;
+		}
+		if ( ! class_exists( 'WC_Payment_Tokens' ) ) {
+			return $tokens;
+		}
+		$limit = apply_filters( 'woocommerce_get_customer_payment_tokens_limit', get_option( 'posts_per_page' ) );
+		$hpay_tokens = WC_Payment_Tokens::get_tokens(
+			array(
+				'user_id'    => $customer_id,
+				'gateway_id' => 'hpay',
+				'limit'      => $limit ? absint( $limit ) : 999,
+			)
+		);
+		foreach ( $hpay_tokens as $token_id => $token ) {
+			if ( ! isset( $tokens[ $token_id ] ) ) {
+				$tokens[ $token_id ] = $token;
+			}
+		}
+		return $tokens;
+	}
+
+	public static function filter_payment_methods_list_item( $item, $payment_token ) {
+		if ( ! is_object( $payment_token ) || strtolower( $payment_token->get_type() ) !== 'hpay' ) {
+			return $item;
+		}
+		$brand = method_exists( $payment_token, 'vault_card_brand' ) ? $payment_token->vault_card_brand() : '';
+		$umask = method_exists( $payment_token, 'vault_card_umask' ) ? $payment_token->vault_card_umask() : '';
+		$exp   = method_exists( $payment_token, 'vault_exp' ) ? $payment_token->vault_exp() : '';
+		$time  = method_exists( $payment_token, 'token_time' ) ? $payment_token->token_time() : '';
+
+		$item['hpay'] = array(
+			'brand'      => $brand ? $brand : 'HPay',
+			'umask'      => $umask ? $umask : '',
+			'expires'    => $exp ? $exp : '',
+			'token_time' => ( $time && $time !== '--' ) ? $time : '',
+		);
+
+		// Fallback text if column action is not used.
+		$item['method']['brand'] = trim( ( $brand ? $brand . ': ' : '' ) . ( $umask ? $umask : '' ) );
+		unset( $item['method']['last4'] );
+		$item['expires'] = $exp ? $exp : esc_html__( 'N/A', 'woocommerce' );
+
+		return $item;
+	}
+
+	public static function render_payment_methods_column_method( $method ) {
+		if ( ! empty( $method['hpay'] ) ) {
+			$brand = $method['hpay']['brand'];
+			$umask = $method['hpay']['umask'];
+			$time  = $method['hpay']['token_time'];
+			echo '<span class="hpay-pmethod">';
+			echo '<span class="hpay-token-brand hpay-token-brand-' . esc_attr( strtolower( $brand ) ) . '">' . esc_html( $brand ) . '</span>';
+			if ( $umask ) {
+				echo '<span class="hpay-pmethod-umask">' . esc_html( $umask ) . '</span>';
+			}
+			if ( $time ) {
+				echo '<span class="hpay-pmethod-meta">' . esc_html( $time ) . '</span>';
+			}
+			echo '</span>';
+			return;
+		}
+
+		if ( ! empty( $method['method']['last4'] ) ) {
+			/* translators: 1: credit card type 2: last 4 digits */
+			echo sprintf( esc_html__( '%1$s ending in %2$s', 'woocommerce' ), esc_html( wc_get_credit_card_type_label( $method['method']['brand'] ) ), esc_html( $method['method']['last4'] ) );
+		} else {
+			echo esc_html( wc_get_credit_card_type_label( isset( $method['method']['brand'] ) ? $method['method']['brand'] : '' ) );
+		}
+	}
+
+	public static function render_payment_methods_column_expires( $method ) {
+		if ( ! empty( $method['hpay'] ) ) {
+			$exp = $method['hpay']['expires'];
+			echo esc_html( $exp ? $exp : __( 'N/A', 'woocommerce' ) );
+			return;
+		}
+		echo esc_html( isset( $method['expires'] ) ? $method['expires'] : '' );
+	}
+
+	public static function init_hooks() {
+		add_filter( 'woocommerce_get_customer_payment_tokens', array( __CLASS__, 'filter_customer_payment_tokens' ), 10, 3 );
+		add_filter( 'woocommerce_payment_methods_list_item', array( __CLASS__, 'filter_payment_methods_list_item' ), 10, 2 );
+		add_action( 'woocommerce_account_payment_methods_column_method', array( __CLASS__, 'render_payment_methods_column_method' ) );
+		add_action( 'woocommerce_account_payment_methods_column_expires', array( __CLASS__, 'render_payment_methods_column_expires' ) );
+	}
 	
 };
+
+WC_Payment_Token_HPay::init_hooks();

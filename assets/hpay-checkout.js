@@ -1628,7 +1628,7 @@ addEventListener("DOMContentLoaded", (event) => {
 			}
 			
 			if(!form.querySelector("input[name='save_vault_token_response']")){
-				let pm_sel_el = form.querySelector("*[name='payment_method']");
+				let pm_sel_el = form.querySelector("*[name='payment_method']:checked") || form.querySelector("*[name='payment_method']");
 				if(pm_sel_el && pm_sel_el.value && /^hpaypayment-/.test(pm_sel_el.value)){
 					let pm_id = parseInt(pm_sel_el.value.replace(/^hpaypayment-/,''));
 					if(pm_id){
