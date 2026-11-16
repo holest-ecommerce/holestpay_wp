@@ -548,8 +548,11 @@
 			if(/REFUSED|FAILED|CANCELED/i.test(hpay_response.status)){
 				
 				let retry_button = jQuery("<button></button>").html(HolestPayCheckout.labels["Try to pay again"] || "Try to pay again").click(function(e){
+					if(is_payment_token_from){
+						window.location.reload();
+						return;
+					}
 					retried = true;
-					
 					hpay_closePopup("payreq-error");
 					if(resinp[0]){
 						resinp.val(JSON.stringify(hpay_response));
@@ -581,6 +584,12 @@
 			
 			
 			hpay_PresentPopup("payreq-error xs-popup", title, content, footer, function(){
+
+				if(is_payment_token_from){
+					window.location.reload();
+					return;
+				}
+
 				if(!retried && hpay_response.order_user_url)
 					window.location.href = hpay_response.order_user_url;
 			});
@@ -850,6 +859,9 @@
 			jQuery("<h4 class='hpay_popup_title'></h4>").appendTo(pop.find(".hpay_popup_top"));
 			jQuery("<a class='hpay_popup_close'>&nbsp;</a>").appendTo(pop.find(".hpay_popup_top"));
 		 }
+
+		 pop[0]._hpay_onclose_callback = onclose || null;
+
 		 if(content){
 			 try{
 				 if(jQuery(title).html()){
@@ -897,11 +909,12 @@
 
 		jQuery(document).on("click",".hpay_popup_close",function(e){
 			e.preventDefault(); 
-			jQuery(this).closest(".hpay_popup").hide(); 
+			let mPop = jQuery(this).closest(".hpay_popup");
+			mPop.hide(); 
 			
-			if(onclose){
+			if(mPop[0]._hpay_onclose_callback){
 				try{
-					onclose();
+					mPop[0]._hpay_onclose_callback();
 				}catch(ex){}
 			}
 			
@@ -1585,19 +1598,21 @@ addEventListener("DOMContentLoaded", (event) => {
 							if(pm && pm.SubscriptionsType && /cof|mit/.test(pm.SubscriptionsType)){
 								hpay_save_pay_token(pm_id).then(r => {
 									if(r.vault_token_uid){
-										const hiddenInput = document.createElement('input');
-										hiddenInput.type = 'hidden';
-										hiddenInput.name = 'save_vault_token_response';
-										hiddenInput.value = JSON.stringify({
-											vault_card_brand: r.vault_card_brand,
-											vault_card_umask: r.vault_card_umask,
-											vault_exp: r.vault_exp,
-											vault_token_uid: r.vault_token_uid,
-											vault_scope: r.vault_scope ,
-											vault_onlyforuser: r.vault_onlyforuser
-										});
-										form.appendChild(hiddenInput);
-										form.submit(); 
+										if(/PAID|RESERVED/.test(r.status)){
+											const hiddenInput = document.createElement('input');
+											hiddenInput.type = 'hidden';
+											hiddenInput.name = 'save_vault_token_response';
+											hiddenInput.value = JSON.stringify({
+												vault_card_brand: r.vault_card_brand,
+												vault_card_umask: r.vault_card_umask,
+												vault_exp: r.vault_exp,
+												vault_token_uid: r.vault_token_uid,
+												vault_scope: r.vault_scope ,
+												vault_onlyforuser: r.vault_onlyforuser
+											});
+											form.appendChild(hiddenInput);
+											form.submit(); 
+										}
 									}else{
 										let_submit = false;
 										hpay_PresentPopup("payreq-error xs-popup", HolestPayCheckout.labels.error , HolestPayCheckout.labels.error_contact_us);	
@@ -1637,20 +1652,21 @@ addEventListener("DOMContentLoaded", (event) => {
 						
 						hpay_save_pay_token(pm_id).then(r => {
 							if(r.vault_token_uid){
-								
-								const hiddenInput = document.createElement('input');
-								hiddenInput.type = 'hidden';
-								hiddenInput.name = 'save_vault_token_response';
-								hiddenInput.value = JSON.stringify({
-									vault_card_brand: r.vault_card_brand,
-									vault_card_umask: r.vault_card_umask,
-									vault_exp: r.vault_exp,
-									vault_token_uid: r.vault_token_uid,
-									vault_scope: r.vault_scope ,
-									vault_onlyforuser: r.vault_onlyforuser
-								});
-								form.appendChild(hiddenInput);
-								form.submit(); 
+								if(/PAID|RESERVED/.test(r.status)){
+									const hiddenInput = document.createElement('input');
+									hiddenInput.type = 'hidden';
+									hiddenInput.name = 'save_vault_token_response';
+									hiddenInput.value = JSON.stringify({
+										vault_card_brand: r.vault_card_brand,
+										vault_card_umask: r.vault_card_umask,
+										vault_exp: r.vault_exp,
+										vault_token_uid: r.vault_token_uid,
+										vault_scope: r.vault_scope ,
+										vault_onlyforuser: r.vault_onlyforuser
+									});
+									form.appendChild(hiddenInput);
+									form.submit(); 
+								}
 							}else{
 								setTimeout(function(){
 									form.submit(); 
